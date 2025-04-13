@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Мои лоты — GameMarket{% endblock %}
+{% block content %}
+
+<h1 class="text-2xl font-bold text-indigo-400 mb-6">🧾 Мои лоты</h1>
+
+<div class="grid gap-6">
+  {% for lot in lots %}
+  <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 flex justify-between items-center">
+    <div>
+      <div class="text-lg font-semibold text-white">{{ lot.title }}</div>
+      <div class="text-sm text-gray-400">{{ lot.price }} ₽ · {{ lot.quantity }} шт. · 
+        {% if lot.is_active %}
+          <span class="text-green-400">Активен</span>
+        {% else %}
+          <span class="text-red-400">Неактивен</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="flex gap-3">
+      <a href="{{ url_for('lot.edit_lot', lot_id=lot.id) }}" class="text-sm text-indigo-400 hover:underline">✏️ Редактировать</a>
+      <form method="POST" action="{{ url_for('lot.delete_lot', lot_id=lot.id) }}" onsubmit="return confirm('Удалить этот лот?')">
+        <button type="submit" class="text-sm text-red-400 hover:underline">🗑 Удалить</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

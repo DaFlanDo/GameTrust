@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdm.toml
+*.pdm.lock
+
+# Byte-compiled / optimized / DLL files
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+develop-eggs/
+.eggs/
+
+# Virtual environment
+.venv/
+env/
+ENV/
+venv/
+pip-wheel-metadata/
+
+# Flask / FastAPI specific
+instance/
+uploads/
+*.db
+*.sqlite
+*.log
+
+# dotenv
+.env
+
+# VSCode / PyCharm / IDEs
+.vscode/
+.idea/
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Pytest / Coverage
+htmlcov/
+.tox/
+.coverage
+.cache
+pytest_cache/
+nosetests.xml
+coverage.xml

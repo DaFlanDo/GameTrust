@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Мои заказы — GameMarket{% endblock %}
+{% block content %}
+
+<div class="max-w-4xl mx-auto py-10">
+  <h1 class="text-2xl font-bold text-indigo-400 mb-6">📦 Мои заказы</h1>
+
+  {% if orders %}
+    <div class="space-y-4">
+      {% for order in orders %}
+        <div class="p-4 bg-gray-800 border border-gray-700 rounded-lg shadow">
+          <div class="flex justify-between items-center">
+            <div>
+              <div class="text-white font-semibold text-lg">{{ order.lot_title or 'Лот удалён' }}</div>
+              <div class="text-sm text-gray-400">Продавец: {{ order.seller_username or 'Неизвестно' }}</div>
+              <div class="text-sm text-gray-400">Цена: {{ order.lot_price }} ₽</div>
+              <div class="text-sm text-gray-400">Статус:
+                {% if order.status == 'paid' %}
+                  <span class="text-green-400">Оплачено</span>
+{% elif order.status == 'completed' %}
+                    <span class="text-blue-400">Подтверждено</span>
+
+                {% else %}
+                  <span class="text-yellow-400">В ожидании оплаты</span>
+                {% endif %}
+              </div>
+              <div class="text-xs text-gray-500 mt-1">Куплено: {{ order.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+            </div>
+            <a href="{{ url_for('purchase.order', purchase_id=order.id) }}"
+               class="text-indigo-400 hover:underline text-sm">Детали</a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-gray-400">Вы еще ничего не покупали.</p>
+  {% endif %}
+</div>
+
+{% endblock %}

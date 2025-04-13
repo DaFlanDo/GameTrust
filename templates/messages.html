@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Диалоги — GameMarket{% endblock %}
+{% block content %}
+
+<h1 class="text-2xl font-bold text-indigo-400 mb-6 text-center">Мои диалоги</h1>
+
+<ul class="max-w-xl mx-auto space-y-4">
+  {% for dialog in dialogs %}
+    <li class="bg-gray-900 border border-gray-700 rounded-xl p-4 hover:bg-gray-800 transition">
+      <a href="{{ url_for('chat.chat_with_user', user_id=dialog.user.id) }}" class="flex items-start gap-3">
+        <img src="{{ url_for('static', filename='uploads/avatars/' ~ dialog.user.avatar) }}"
+             class="w-10 h-10 rounded-full object-cover border border-indigo-500">
+        <div class="flex flex-col overflow-hidden">
+          <div class="text-white font-semibold hover:underline">{{ dialog.user.username }}</div>
+          <div class="text-gray-400 text-sm mt-1 truncate max-w-[220px]">
+            {{ dialog.message.content }}
+          </div>
+          <div class="text-xs text-gray-500 mt-1">{{ dialog.message.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+        </div>
+      </a>
+    </li>
+  {% endfor %}
+</ul>
+
+{% endblock %}

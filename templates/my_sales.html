@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Мои продажи — GameMarket{% endblock %}
+{% block content %}
+
+<h1 class="text-3xl font-bold text-indigo-400 text-center mb-8">💼 Мои продажи</h1>
+
+{% if purchases %}
+<div class="overflow-x-auto">
+  <table class="min-w-full bg-gray-900 border border-gray-700 rounded-xl overflow-hidden">
+    <thead>
+      <tr class="text-left text-sm text-gray-400 bg-gray-800 border-b border-gray-700">
+        <th class="px-4 py-3">Товар</th>
+        <th class="px-4 py-3">Покупатель</th>
+        <th class="px-4 py-3">Дата</th>
+        <th class="px-4 py-3">Цена</th>
+        <th class="px-4 py-3">Статус</th>
+        <th class="px-4 py-3">Отзыв</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for purchase in purchases %}
+        <tr class="text-sm text-gray-200 border-b border-gray-800 hover:bg-gray-800 transition">
+          <td class="px-4 py-3">
+            <span class="font-semibold text-indigo-300">{{ purchase.lot_title }}</span>
+            <p class="text-xs text-gray-400">{{ purchase.lot_category }} • {{ purchase.lot_platform }}</p>
+          </td>
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-2">
+              <img src="{{ url_for('static', filename='uploads/avatars/' ~ users_dict.get(purchase.user_id).avatar if users_dict.get(purchase.user_id).avatar else 'avatars/default.png') }}"
+                   alt="аватар"
+                   class="w-7 h-7 rounded-full border border-gray-600 object-cover">
+<a href="{{ url_for('profile.user_profile', user_id=users_dict.get(purchase.user_id).id) }}"
+   class="text-indigo-400 hover:underline">
+  {{ users_dict.get(purchase.user_id).username }}
+</a>            </div>
+          </td>
+          <td class="px-4 py-3">{{ purchase.created_at.strftime('%d.%m.%Y') }}</td>
+          <td class="px-4 py-3 text-indigo-400 font-semibold">{{ purchase.lot_price }} ₽</td>
+          <td class="px-4 py-3">
+            {% if purchase.status == 'completed' %}
+              <span class="text-green-400">Завершено</span>
+            {% else %}
+              <span class="text-yellow-400">В ожидании</span>
+            {% endif %}
+          </td>
+       <td class="px-4 py-3">
+  {% set review = reviews.get(purchase.id) %}
+  {% if review %}
+    <div class="flex items-center gap-1 mb-1">
+      {% for i in range(1, 6) %}
+        <span class="{% if i <= review.rating %}text-yellow-400{% else %}text-gray-600{% endif %}">★</span>
+      {% endfor %}
+      <span class="text-xs text-gray-400 ml-1">({{ review.rating }})</span>
+    </div>
+    <p class="text-sm text-gray-300 italic max-w-xs truncate">“{{ review.comment }}”</p>
+  {% else %}
+    <span class="text-gray-500 text-sm">—</span>
+  {% endif %}
+</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% else %}
+  <p class="text-gray-400 text-center text-lg">У вас пока нет продаж.</p>
+{% endif %}
+
+{% endblock %}

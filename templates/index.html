@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Главная — GameMarket{% endblock %}
+{% block content %}
+
+<!-- Hero-секция -->
+<section class="text-center mb-10">
+  <h1 class="text-4xl font-bold text-indigo-400">Добро пожаловать в GameMarket</h1>
+  <p class="text-gray-400 mt-2">Площадка для покупки и продажи аккаунтов, ключей и внутриигровых товаров</p>
+</section>
+
+<!-- Категории -->
+<section class="mb-12">
+  <h2 class="text-2xl font-bold text-indigo-300 mb-4">Категории</h2>
+  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+    <a href="{{ url_for('game.show_games', category='Accounts') }}" class="bg-gray-800 p-5 rounded-xl text-center hover:bg-gray-700 transition">
+      🎮<div class="font-semibold mt-2">Аккаунты</div>
+    </a>
+    <a href="{{ url_for('game.show_games', category='Keys') }}" class="bg-gray-800 p-5 rounded-xl text-center hover:bg-gray-700 transition">
+      🔑<div class="font-semibold mt-2">Ключи</div>
+    </a>
+    <a href="{{ url_for('game.show_games', category='Currency') }}" class="bg-gray-800 p-5 rounded-xl text-center hover:bg-gray-700 transition">
+      💰<div class="font-semibold mt-2">Валюта</div>
+    </a>
+    <a href="{{ url_for('game.show_games', category='Services') }}" class="bg-gray-800 p-5 rounded-xl text-center hover:bg-gray-700 transition">
+      🛠️<div class="font-semibold mt-2">Услуги</div>
+    </a>
+  </div>
+</section>
+
+<!-- Популярные товары -->
+<section>
+  <h2 class="text-2xl font-bold text-indigo-300 mb-4">🔥 Популярные лоты</h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for lot in lots %}
+      <div class="bg-gray-800 p-4 rounded-lg shadow hover:shadow-indigo-500/30 transition">
+        <h3 class="text-lg font-semibold">{{ lot.title }}</h3>
+        <p class="text-sm text-gray-400">{{ lot.description[:80] }}...</p>
+        <div class="mt-3 flex justify-between items-center">
+          <span class="text-green-400 font-bold">{{ lot.price }} ₽</span>
+          <a href="{{ url_for('lot.lot', lot_id=lot.id) }}" class="text-sm text-indigo-400 hover:underline">Подробнее</a>
+        </div>
+      </div>
+    {% else %}
+      <p class="text-gray-500">Лоты пока не добавлены.</p>
+    {% endfor %}
+  </div>
+</section>
+
+{% endblock %}

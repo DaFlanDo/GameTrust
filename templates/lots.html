@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block title %}Лоты {{ game.name }} — GameMarket{% endblock %}
+{% block content %}
+
+<section class="text-center py-8">
+  <h1 class="text-3xl font-bold text-indigo-400 mb-1">Аккаунты {{ game.name }}</h1>
+  <p class="text-sm text-gray-400">🔍 Быстрый поиск по лотам + фильтрация по платформе и доставке</p>
+</section>
+
+<!-- Фильтры и поиск (если нужно) -->
+<div class="max-w-6xl mx-auto px-4 mb-6">
+  <!-- ... -->
+</div>
+
+<!-- 💻 Десктопная таблица -->
+<div class="hidden md:block max-w-6xl mx-auto px-4 overflow-x-auto">
+  <div class="rounded-xl overflow-hidden shadow-lg bg-gray-800">
+    <table class="w-full text-sm text-white border-collapse">
+      <thead class="bg-gray-700 text-gray-300 uppercase text-xs">
+        <tr>
+          <th class="px-5 py-3 text-left w-2/5 rounded-tl-xl">📝 Описание</th>
+          <th class="px-5 py-3 text-left w-1/4">👤 Продавец</th>
+          <th class="px-5 py-3 text-right w-1/6">💰 Цена</th>
+          <th class="px-5 py-3 text-right w-1/6 rounded-tr-xl">🛒</th>
+        </tr>
+      </thead>
+      <tbody class="bg-gray-800">
+        {% for lot in lots %}
+        <tr class="border-b border-gray-700 hover:bg-gray-700 transition cursor-pointer"
+            onclick="window.location.href='{{ url_for('lot.lot', lot_id=lot.id) }}'">
+
+          <!-- Описание -->
+          <td class="px-5 py-3 align-top">
+            <div class="font-semibold text-white">
+              {{ lot.title }}
+            </div>
+            {% if lot.description %}
+              <p class="text-xs text-gray-400 mt-1">{{ lot.description }}</p>
+            {% endif %}
+            <div class="text-xs text-gray-500 mt-2">
+              Платформа: {{ lot.platform }}
+              {% if lot.autodelivery %}
+                • Автодоставка
+              {% endif %}
+            </div>
+          </td>
+
+          <!-- Продавец -->
+          <td class="px-5 py-3 align-top">
+            <div class="flex items-center gap-3">
+              <img src="{{ lot.avatar_url }}" alt="аватар" class="w-8 h-8 rounded-full border border-gray-600 object-cover">
+              <div>
+                <div class="text-sm text-gray-300 font-medium">{{ lot.seller }}</div>
+                <div class="flex items-center gap-1 mt-1">
+                  {% for i in range(lot.rating_int) %}
+                    <span class="text-yellow-400">★</span>
+                  {% endfor %}
+                  {% for i in range(5 - lot.rating_int) %}
+                    <span class="text-gray-500">★</span>
+                  {% endfor %}
+                  <span class="text-gray-400 text-xs">({{ lot.rating }})</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">На сайте: {{ lot.on_site }}</p>
+              </div>
+            </div>
+          </td>
+
+          <!-- Цена -->
+          <td class="px-5 py-3 align-top text-right">
+            <span class="text-white font-bold">{{ lot.price }} ₽</span>
+          </td>
+
+          <!-- Кнопка -->
+          <td class="px-5 py-3 align-top text-right">
+            <a href="{{ url_for('lot.lot', lot_id=lot.id) }}"
+               class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-sm"
+               onclick="event.stopPropagation()">Купить</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 📱 Мобильные карточки -->
+<div class="block md:hidden space-y-4 px-4 max-w-6xl mx-auto">
+  {% for lot in lots %}
+  <div onclick="window.location.href='{{ url_for('lot.lot', lot_id=lot.id) }}'"
+       class="bg-gray-800 rounded-xl p-4 border border-gray-700 shadow hover:bg-gray-700 transition cursor-pointer">
+
+    <div class="flex justify-between items-start">
+      <div class="text-white font-bold text-lg">{{ lot.title }}</div>
+      <div class="text-sm text-white font-semibold">{{ lot.price }} ₽</div>
+    </div>
+
+    {% if lot.description %}
+      <div class="text-gray-400 text-sm mt-1">{{ lot.description }}</div>
+    {% endif %}
+
+    <div class="text-gray-500 text-xs mt-2">
+      Платформа: {{ lot.platform }}
+      {% if lot.autodelivery %}
+        • Автодоставка
+      {% endif %}
+    </div>
+
+    <div class="flex items-center gap-3 mt-4">
+      <img src="{{ lot.avatar_url }}" alt="аватар" class="w-8 h-8 rounded-full object-cover border border-gray-600">
+      <div>
+        <div class="text-sm text-gray-300 font-medium">{{ lot.seller }}</div>
+        <div class="flex gap-1 text-xs">
+          {% for i in range(lot.rating_int) %}
+            <span class="text-yellow-400">★</span>
+          {% endfor %}
+          {% for i in range(5 - lot.rating_int) %}
+            <span class="text-gray-500">★</span>
+          {% endfor %}
+          <span class="text-gray-400 ml-1">({{ lot.rating }})</span>
+        </div>
+        <div class="text-xs text-gray-500 mt-0.5">На сайте: {{ lot.on_site }}</div>
+      </div>
+    </div>
+
+    <a href="{{ url_for('lot.lot', lot_id=lot.id) }}"
+       class="block text-center mt-4 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded"
+       onclick="event.stopPropagation()">Купить</a>
+  </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

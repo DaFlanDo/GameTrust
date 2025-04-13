@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Редактировать лот — GameMarket{% endblock %}
+{% block content %}
+
+<div class="max-w-3xl mx-auto py-10">
+  <h1 class="text-2xl font-bold text-indigo-400 mb-6 text-center">✏️ Редактировать лот</h1>
+
+  <form method="POST" class="space-y-6">
+
+    <!-- Название -->
+    <div>
+      <label class="block text-sm font-medium mb-1 text-gray-300">Название</label>
+      <input type="text" name="title" value="{{ lot.title }}" required
+             class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-indigo-500 text-white focus:ring-2 focus:ring-indigo-600">
+    </div>
+
+    <!-- Описание -->
+    <div>
+      <label class="block text-sm font-medium mb-1 text-gray-300">Описание</label>
+      <textarea name="description" rows="4"
+                class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-indigo-500 text-white focus:ring-2 focus:ring-indigo-600"
+                placeholder="Опишите ваш лот...">{{ lot.description }}</textarea>
+    </div>
+<!-- Активен -->
+<div class="flex items-center space-x-2">
+  <input type="checkbox" name="is_active" id="is_active"
+         {% if lot.is_active %}checked{% endif %}
+         class="form-checkbox text-indigo-600 bg-gray-800 border-gray-600 rounded">
+  <label for="is_active" class="text-sm text-gray-300">Показывать лот (активен)</label>
+</div>
+    <!-- Цена -->
+    <div>
+      <label class="block text-sm font-medium mb-1 text-gray-300">Цена (₽)</label>
+      <input type="number" name="price" value="{{ lot.price }}" required
+             class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-indigo-500 text-white focus:ring-2 focus:ring-indigo-600">
+    </div>
+
+    <!-- Количество -->
+    <div>
+      <label class="block text-sm font-medium mb-1 text-gray-300">Количество</label>
+      <input type="number" name="quantity" value="{{ lot.quantity }}" min="1" required
+             class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-indigo-500 text-white focus:ring-2 focus:ring-indigo-600">
+    </div>
+
+    <!-- Кнопка -->
+    <div class="text-center pt-4">
+      <button type="submit"
+              class="bg-indigo-600 hover:bg-indigo-700 px-6 py-2 rounded-lg text-white font-medium shadow-md transition">
+        💾 Сохранить изменения
+      </button>
+    </div>
+
+  </form>
+</div>
+
+{% endblock %}

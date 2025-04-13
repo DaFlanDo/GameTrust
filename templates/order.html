@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% block title %}Заказ #{{ purchase.id }} — GameMarket{% endblock %}
+{% block content %}
+
+<div class="max-w-3xl mx-auto py-10 px-4 space-y-6">
+
+  <h1 class="text-3xl font-bold text-white">Ваш заказ #{{ purchase.id }}</h1>
+
+  <!-- Информация о заказе -->
+  <div class="bg-gray-800 rounded-xl p-6 shadow space-y-4 border border-gray-700">
+    <div class="text-white font-semibold text-xl">
+      {{ purchase.lot_title or "❌ Лот удалён" }}
+    </div>
+
+    <div class="text-sm text-gray-400">
+      Категория: {{ purchase.lot_category or "—" }} ·
+      Платформа: {{ purchase.lot_platform or "—" }}
+    </div>
+
+    {% if purchase.lot_description %}
+    <div class="text-sm text-gray-300 leading-relaxed">
+      {{ purchase.lot_description }}
+    </div>
+    {% else %}
+    <div class="text-sm text-gray-500 italic">Описание недоступно</div>
+    {% endif %}
+
+<div class="text-sm text-gray-500">
+  Продавец:
+  <a href="{{ url_for('profile.user_profile', user_id=purchase.seller_id) }}"
+     class="text-indigo-400 hover:underline font-medium">
+    {{ purchase.seller_username }}
+  </a><br>
+  Стоимость: <span class="text-green-400 font-bold">{{ purchase.lot_price }} ₽</span><br>
+  Дата: {{ purchase.created_at.strftime('%d.%m.%Y %H:%M') }}<br>
+  Статус:
+{% if purchase.status == 'paid' %}
+  <span class="text-green-400 font-medium">✅ Оплачен</span>
+{% elif purchase.status == 'completed' %}
+  <span class="text-blue-400 font-medium">📦 Завершён</span>
+{% else %}
+  <span class="text-yellow-400 font-medium">⏳ Ожидается</span>
+{% endif %}
+</div>
+  </div>
+
+  <!-- Автовыдача -->
+  {% if purchase.delivery_data %}
+    <div class="bg-indigo-900 rounded-xl p-6 shadow border border-indigo-600 text-left">
+      <h2 class="text-white font-bold mb-3 text-lg">📦 Ваш товар:</h2>
+      <pre class="text-green-400 bg-gray-900 p-4 rounded-lg overflow-auto text-sm">{{ purchase.delivery_data }}</pre>
+    </div>
+  {% endif %}
+{% if purchase.status == 'paid' and not purchase.is_confirmed %}
+  <form method="POST" action="{{ url_for('purchase.confirm_receipt', purchase_id=purchase.id) }}">
+    <button type="submit"
+            class="mt-6 bg-green-600 hover:bg-green-700 px-6 py-2 rounded-lg text-white text-sm transition">
+      ✅ Подтвердить получение товара
+    </button>
+  </form>
+{% endif %}
+
+<!-- Отзыв -->
+<!-- Отзыв -->
+{% if purchase.is_reviewed and review %}
+  <div class="bg-gray-800 rounded-xl p-6 shadow border border-gray-700 space-y-3">
+    {% if request.args.get('edit') == '1' %}
+      <!-- Форма редактирования -->
+      <h2 class="text-white font-semibold text-lg mb-3">✏️ Редактировать отзыв</h2>
+      <form method="POST" action="{{ url_for('review.edit_review', review_id=review.id) }}" class="space-y-4">
+        <div class="space-y-3">
+          <label class="block text-white font-semibold text-lg">Оценка</label>
+          <div class="flex flex-col space-y-2">
+            {% for i in range(5, 0, -1) %}
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="rating" value="{{ i }}" {% if review.rating == i %}checked{% endif %} class="accent-yellow-500">
+                <span class="text-sm text-yellow-300">{{ '★' * i + '☆' * (5 - i) }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm text-gray-300 mb-1">Комментарий</label>
+          <textarea name="comment" rows="4"
+                    class="w-full px-3 py-2 rounded bg-gray-900 border border-indigo-500 text-white"
+                    required>{{ review.comment }}</textarea>
+        </div>
+
+        <div class="flex gap-3">
+          <button type="submit"
+                  class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded transition">
+            Сохранить
+          </button>
+          <a href="{{ url_for('purchase.order', purchase_id=purchase.id) }}"
+             class="text-sm text-gray-400 hover:text-white self-center">Отмена</a>
+        </div>
+      </form>
+    {% else %}
+      <!-- Просмотр отзыва -->
+      <div class="flex justify-between items-start">
+        <div>
+          <h2 class="text-white font-semibold text-lg mb-1">📝 Ваш отзыв</h2>
+          <div class="flex items-center gap-2">
+            <span class="text-yellow-400 font-bold text-base">★ {{ review.rating }}/5</span>
+            <span class="text-sm text-gray-500">— {{ review.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+          </div>
+        </div>
+        <a href="{{ url_for('purchase.order', purchase_id=purchase.id, edit=1) }}"
+           class="text-indigo-400 hover:text-indigo-300 text-sm mt-1">✏️ Редактировать</a>
+      </div>
+      <div class="text-sm text-gray-300 whitespace-pre-wrap border-t border-gray-700 pt-3">
+        {{ review.comment }}
+      </div>
+    {% endif %}
+  </div>
+
+{% elif purchase.status == 'completed' and not purchase.is_reviewed %}
+  <!-- Новая форма отзыва -->
+  <div class="bg-gray-800 rounded-xl p-6 shadow border border-gray-700">
+    <h2 class="text-white font-semibold text-lg mb-3">📝 Оставить отзыв</h2>
+    <form action="{{ url_for('review.submit_review', purchase_id=purchase.id) }}" method="POST" class="space-y-4">
+      <div class="space-y-3">
+        <label class="block text-white font-semibold text-lg">Оценка</label>
+        <div class="flex flex-col space-y-2">
+          {% for i in range(5, 0, -1) %}
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="rating" value="{{ i }}" required class="accent-yellow-500">
+              <span class="text-sm text-yellow-300">{{ '★' * i + '☆' * (5 - i) }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm text-gray-300 mb-1">Комментарий</label>
+        <textarea name="comment" rows="4"
+                  class="w-full px-3 py-2 rounded bg-gray-900 border border-indigo-500 text-white"
+                  placeholder="Поделитесь впечатлением..."></textarea>
+      </div>
+
+      <button type="submit"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded transition">
+        Отправить отзыв
+      </button>
+    </form>
+  </div>
+{% endif %}
+
+<!-- Кнопка возврата -->
+<a href="{{ url_for('purchase.my_orders') }}"
+   class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 mt-6 rounded-lg shadow text-sm transition">
+  ← Вернуться к заказам
+</a>
+
+{% endblock %}

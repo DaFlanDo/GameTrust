@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}GameMarket{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+<body class="bg-gray-900 text-white min-h-screen">
+
+<header class="bg-gray-800 shadow">
+  <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+    <a href="/" class="text-xl font-bold text-indigo-400">🎮 GameMarket</a>
+
+    <nav class="text-sm relative flex items-center gap-6">
+      {% if current_user.is_authenticated %}
+
+        <!-- 📬 Меню сообщений -->
+        <div class="relative">
+          <a href="{{ url_for('chat.message_list') }}" class="hover:text-indigo-300 relative">
+            📬 Сообщения
+            <span id="message-indicator" class="hidden absolute -top-2 -right-3 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">1</span>
+          </a>
+        </div>
+
+        <!-- Выпадающее меню -->
+        <div class="relative inline-block text-left">
+          <button id="menuBtn" onclick="toggleDropdown()" class="inline-flex items-center gap-2 hover:text-indigo-300 focus:outline-none">
+            {{ current_user.username }}
+            <svg class="w-4 h-4 text-gray-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          <div id="dropdownMenu"
+               class="hidden absolute right-0 mt-2 w-48 bg-gray-900 border border-gray-700 rounded-md shadow-lg z-50">
+            <a href="{{ url_for('profile.user_profile', user_id=current_user.id) }}" class="block px-4 py-2 hover:bg-gray-800 text-sm">👤 Профиль</a>
+              <a class="block px-4 py-2 hover:bg-gray-800 text-sm">Баланс: {{ current_user.balance }}</a>
+
+            <a href="{{ url_for('lot.my_lots') }}" class="block px-4 py-2 hover:bg-gray-800 text-sm">📦 Мои лоты</a>
+            <a href="{{ url_for('purchase.my_orders') }}" class="block px-4 py-2 hover:bg-gray-800 text-sm">🧾 Мои покупки</a>
+              <a href="{{ url_for('lot.my_sales') }}" class="block px-4 py-2 hover:bg-gray-800 text-sm">📦 Мои продажи</a>
+
+            <a href="{{ url_for('lot.add_lot') }}" class="block px-4 py-2 hover:bg-gray-800 text-sm">➕ Добавить лот</a>
+            <div class="border-t border-gray-700 my-1"></div>
+            <a href="{{ url_for('auth.logout') }}" class="block px-4 py-2 hover:bg-red-600 hover:text-white text-sm">🚪 Выход</a>
+          </div>
+        </div>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}" class="hover:text-indigo-300 mr-4">Вход</a>
+        <a href="{{ url_for('auth.register') }}" class="hover:text-indigo-300">Регистрация</a>
+      {% endif %}
+    </nav>
+  </div>
+</header>
+
+<script>
+  function toggleDropdown() {
+    const menu = document.getElementById("dropdownMenu");
+    menu.classList.toggle("hidden");
+  }
+
+  document.addEventListener('click', function (event) {
+    const menu = document.getElementById("dropdownMenu");
+    const button = document.getElementById("menuBtn");
+    if (!menu.contains(event.target) && !button.contains(event.target)) {
+      menu.classList.add("hidden");
+    }
+  });
+
+
+</script>
+
+<main class="py-10 px-4">
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="text-center text-xs text-gray-500 py-6">
+  &copy; 2025 GameMarket — Сделано с любовью к геймерам 🎮
+</footer>
+
+</body>
+</html>

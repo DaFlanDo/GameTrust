@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Ошибка сервера — GameMarket{% endblock %}
+
+{% block content %}
+<div class="min-h-[60vh] flex flex-col justify-center items-center text-center px-4">
+  <h1 class="text-6xl font-extrabold text-red-500 mb-4">500</h1>
+  <p class="text-2xl text-gray-200 font-semibold mb-2">Что-то пошло не так 😓</p>
+  <p class="text-gray-400 mb-6 max-w-xl">
+    Внутренняя ошибка сервера. Мы уже работаем над её устранением. Попробуйте обновить страницу или зайти позже.
+  </p>
+
+  <a href="{{ url_for('lot.home') }}"
+     class="mt-6 inline-block px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition">
+    ⬅ На главную
+  </a>
+</div>
+{% endblock %}

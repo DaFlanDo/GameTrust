@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% block title %}Чат с {{ other_user.username }} — GameMarket{% endblock %}
+
+{% block content %}
+
+<div class="max-w-3xl mx-auto">
+  <h1 class="text-2xl font-bold text-indigo-400 text-center mb-6">Чат с {{ other_user.username }}</h1>
+
+  <div class="chat-box bg-gray-900 rounded-xl p-4 h-[60vh] overflow-y-auto space-y-4 border border-gray-700">
+    {% for msg in messages %}
+      {% if msg.is_system %}
+        <div class="text-center text-sm text-gray-300 bg-blue-800 px-4 py-2 rounded-xl">
+          {{ msg.content | safe }}
+          <div class="text-xs text-gray-500 mt-1">{{ msg.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+        </div>
+      {% else %}
+        <div class="flex {{ 'justify-end' if msg.sender_id == current_user.id else 'justify-start' }}">
+          <div class="max-w-sm px-4 py-2 rounded-xl {{ 'bg-indigo-600 text-white' if msg.sender_id == current_user.id else 'bg-gray-800 text-gray-200' }}">
+            {{ msg.content }}
+            <div class="text-xs text-gray-400 mt-1">{{ msg.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <form id="chat-form" class="mt-4 flex gap-2">
+    <input type="text" autocomplete="false" name="content" placeholder="Введите сообщение..."
+           class="flex-1 px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-indigo-500">
+    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold">
+      Отправить
+    </button>
+  </form>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const chatForm = document.getElementById("chat-form");
+  const chatInput = chatForm.querySelector("input[name='content']");
+  const chatBox = document.querySelector(".chat-box");
+
+  const otherUserId = {{ other_user.id }};
+  const currentUserId = {{ current_user.id }};
+  let lastTimestamp = new Date().toISOString();  // время запуска
+
+  // Отправка сообщения
+  chatForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const content = chatInput.value.trim();
+    if (!content) return;
+
+    fetch("/send_message", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        receiver_id: otherUserId,
+        content: content
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.status === "success") {
+        chatInput.value = "";
+        // сообщение придёт через longPoll
+      } else {
+        alert("Ошибка: " + data.message);
+      }
+    })
+    .catch(error => {
+      console.error("Ошибка при отправке:", error);
+    });
+  });
+
+  // Отображение сообщений
+  function renderMessages(messages) {
+    messages.forEach(msg => {
+      const isOwnMessage = msg.sender_id === currentUserId;
+      if (msg.is_system) {
+        chatBox.innerHTML += `
+          <div class="text-center text-sm text-gray-300 bg-blue-800 px-4 py-2 rounded-xl">
+            ${msg.content}
+            <div class="text-xs text-gray-500 mt-1">${msg.timestamp}</div>
+          </div>`;
+      } else {
+        chatBox.innerHTML += `
+          <div class="flex ${isOwnMessage ? 'justify-end' : 'justify-start'}">
+            <div class="max-w-sm px-4 py-2 rounded-xl ${isOwnMessage ? 'bg-indigo-600 text-white' : 'bg-gray-800 text-gray-200'}">
+              ${msg.content}
+              <div class="text-xs text-gray-400 mt-1">${msg.timestamp}</div>
+            </div>
+          </div>`;
+      }
+      lastTimestamp = msg.created_at_raw;
+    });
+
+    if (messages.length > 0) {
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+  }
+
+  // Long polling
+  function longPoll() {
+    fetch(`/api/messages/longpoll/${otherUserId}?after=${encodeURIComponent(lastTimestamp)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "success") {
+          renderMessages(data.messages);
+        }
+        longPoll(); // продолжаем
+      })
+      .catch(err => {
+        console.error("Long polling error:", err);
+        setTimeout(longPoll, 3000); // повтор через 3 сек при ошибке
+      });
+  }
+
+  longPoll(); // старт
+});
+</script>
+
+{% endblock %}

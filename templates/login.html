@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Вход — GameMarket{% endblock %}
+{% block content %}
+
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-tr from-indigo-800 via-purple-700 to-pink-600 py-10">
+
+  <div class="bg-gray-900 rounded-3xl shadow-2xl overflow-hidden w-full max-w-4xl flex flex-col md:flex-row animate-fadeIn">
+
+    <!-- Левая часть (можно заменить или убрать при желании) -->
+    <div class="md:w-1/2 hidden md:block">
+      <img src="{{ url_for('static', filename='img/login-art.png') }}" class="h-full w-full object-cover" alt="Login art">
+    </div>
+
+    <!-- Форма -->
+    <div class="w-full md:w-1/2 p-8 md:p-12">
+      <h2 class="text-3xl font-bold text-indigo-400 text-center mb-2">С возвращением 👋</h2>
+      <p class="text-center text-gray-400 mb-6">Войдите в аккаунт, чтобы продолжить</p>
+
+      <!-- Flash-сообщения -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="space-y-2 mb-4">
+            {% for category, message in messages %}
+              <div class="px-4 py-3 rounded-lg text-sm font-medium bg-red-600/10 text-red-400 border border-red-600/30">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-6">
+        {{ form.hidden_tag() }}
+
+        <!-- Email -->
+        <div>
+          {{ form.email.label(class_='block text-sm font-medium text-gray-300 mb-1') }}
+          {{ form.email(class_='w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:outline-none') }}
+          {% if form.email.errors %}
+            <p class="text-sm text-red-500 mt-1">{{ form.email.errors[0] }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Пароль -->
+        <div>
+          {{ form.password.label(class_='block text-sm font-medium text-gray-300 mb-1') }}
+          {{ form.password(class_='w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:outline-none') }}
+          {% if form.password.errors %}
+            <p class="text-sm text-red-500 mt-1">{{ form.password.errors[0] }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Кнопка -->
+        <button type="submit"
+                class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition">
+          🔐 {{ form.submit.label.text }}
+        </button>
+      </form>
+
+      <p class="text-sm text-center text-gray-400 mt-6">
+        Нет аккаунта?
+        <a href="{{ url_for('auth.register') }}" class="text-indigo-400 hover:underline">Регистрация</a>
+      </p>
+    </div>
+
+  </div>
+
+</div>
+
+{% endblock %}

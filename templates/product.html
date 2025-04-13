@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}{{ lot.title }} — GameMarket{% endblock %}
+{% block content %}
+
+<main class="max-w-5xl mx-auto px-4 py-10 space-y-8">
+
+  <!-- Верхняя часть: заголовок и галерея -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
+
+    <!-- Галерея -->
+    {% if lot.images %}
+      <div class="space-y-4">
+        <div class="overflow-hidden rounded-xl border border-gray-700 shadow">
+          <img src="{{ url_for('uploaded_file', filename=lot.images[0]) }}"
+               class="w-full h-64 object-cover hover:scale-105 transition rounded-xl">
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          {% for img in lot.images %}
+            <img src="{{ url_for('uploaded_file', filename=img) }}"
+                 class="w-full h-20 object-cover rounded-lg border border-gray-700 hover:scale-105 transition cursor-pointer">
+          {% endfor %}
+        </div>
+      </div>
+    {% else %}
+      <div class="h-64 bg-gray-700 rounded-lg flex items-center justify-center text-gray-400">Нет изображений</div>
+    {% endif %}
+
+    <!-- Инфо -->
+    <div class="space-y-5">
+      <h1 class="text-3xl font-bold text-white">{{ lot.title }}</h1>
+      <p class="text-sm text-gray-400">{{ lot.category }} / {{ lot.platform }}</p>
+      <div class="text-xs text-gray-400">(235 отзывов)</div>
+
+      {% if lot.autodelivery %}
+        <span class="inline-block bg-indigo-600 text-white text-xs font-medium px-3 py-1 rounded-full">
+          ⚡ Автодоставка — моментально
+        </span>
+      {% endif %}
+
+      <div class="text-sm text-gray-300 whitespace-pre-line border-t border-gray-700 pt-4">
+        {{ lot.description }}
+      </div>
+
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gray-800 border border-gray-700 p-4 rounded-xl">
+        <div>
+          <div class="text-sm text-gray-400">Цена:</div>
+          <div class="text-2xl font-bold text-green-400">{{ lot.price }} ₽</div>
+        </div>
+        <div>
+          <div class="text-sm text-gray-400">В наличии:</div>
+          <div class="text-xl text-white">{{ lot.quantity }} шт.</div>
+        </div>
+
+        {% if lot.quantity > 0 %}
+        <form action="{{ url_for('purchase.start_purchase', lot_id=lot.id) }}" method="POST">
+          <button type="submit"
+                  class="mt-4 sm:mt-0 bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition text-sm shadow">
+            Купить
+          </button>
+        </form>
+        {% else %}
+          <span class="mt-4 sm:mt-0 text-sm text-red-400 font-medium">Нет в наличии</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Продавец -->
+  <div class="bg-gray-800 border border-gray-700 p-5 rounded-xl flex items-center justify-between">
+    <div class="flex items-center gap-4">
+      <img src="https://i.pravatar.cc/60?u={{ lot.id }}" class="w-14 h-14 rounded-full shadow">
+      <div>
+        <div class="text-white font-semibold text-lg">{{ lot.seller }}</div>
+        <div class="text-xs text-gray-400">На сайте {{ lot.years }} {{ 'год' if lot.years == 1 else 'года' }} · {{ lot.sales }} продаж</div>
+      </div>
+    </div>
+    <a href="{{ url_for('profile.user_profile', user_id=lot.id) }}" class="text-sm text-indigo-400 hover:underline">Профиль продавца</a>
+  </div>
+
+</main>
+
+{% endblock %}

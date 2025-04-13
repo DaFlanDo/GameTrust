@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Слишком много запросов — GameMarket{% endblock %}
+
+{% block content %}
+<div class="min-h-[60vh] flex flex-col justify-center items-center text-center px-4">
+  <h1 class="text-6xl font-extrabold text-indigo-500 mb-4">429</h1>
+  <p class="text-2xl text-gray-200 font-semibold mb-2">Слишком много запросов</p>
+  <p class="text-gray-400 mb-6 max-w-xl">
+    Похоже, вы слишком быстро нажимаете. Пожалуйста, подождите немного и попробуйте снова. Это помогает защитить сайт от злоупотреблений.
+  </p>
+
+
+  <a href="{{ request.referrer or url_for('lot.home') }}"
+     class="mt-6 inline-block px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition">
+    ⬅ Вернуться назад
+  </a>
+</div>
+
+
+{% endblock %}
