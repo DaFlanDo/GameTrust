@@ -4,20 +4,25 @@
 
 <main class="max-w-5xl mx-auto px-4 py-10 space-y-8">
 
-  <!-- Верхняя часть: заголовок и галерея -->
+  <!-- ───────── Верхняя часть: галерея + инфо ───────── -->
   <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
 
-    <!-- Галерея -->
+    <!-- ───── Галерея ───── -->
     {% if lot.images %}
-      <div class="space-y-4">
+      <div class="space-y-4" id="gallery">
+        <!-- Главное изображение -->
         <div class="overflow-hidden rounded-xl border border-gray-700 shadow">
-          <img src="{{ url_for('uploaded_file', filename=lot.images[0]) }}"
-               class="w-full h-64 object-cover hover:scale-105 transition rounded-xl">
+          <img id="mainImage" src="{{ url_for('static', filename='uploads/' ~ lot.images[0]) }}"
+               alt="{{ lot.title }}"
+               class="w-full h-64 object-cover transition duration-300">
         </div>
+        <!-- Миниатюры -->
         <div class="grid grid-cols-3 gap-3">
           {% for img in lot.images %}
-            <img src="{{ url_for('uploaded_file', filename=img) }}"
-                 class="w-full h-20 object-cover rounded-lg border border-gray-700 hover:scale-105 transition cursor-pointer">
+            <img data-src="{{ url_for('static', filename='uploads/' ~ img) }}"
+                 src="{{ url_for('static', filename='uploads/' ~ img) }}"
+                 alt="thumb {{ loop.index }}"
+                 class="thumb w-full h-20 object-cover rounded-lg border border-gray-700 cursor-pointer hover:scale-105 transition">
           {% endfor %}
         </div>
       </div>
@@ -25,7 +30,7 @@
       <div class="h-64 bg-gray-700 rounded-lg flex items-center justify-center text-gray-400">Нет изображений</div>
     {% endif %}
 
-    <!-- Инфо -->
+    <!-- ───── Информация о лоте ───── -->
     <div class="space-y-5">
       <h1 class="text-3xl font-bold text-white">{{ lot.title }}</h1>
       <p class="text-sm text-gray-400">{{ lot.category }} / {{ lot.platform }}</p>
@@ -65,10 +70,10 @@
     </div>
   </div>
 
-  <!-- Продавец -->
+  <!-- ───────── Карточка продавца ───────── -->
   <div class="bg-gray-800 border border-gray-700 p-5 rounded-xl flex items-center justify-between">
     <div class="flex items-center gap-4">
-      <img src="https://i.pravatar.cc/60?u={{ lot.id }}" class="w-14 h-14 rounded-full shadow">
+      <img src="{{ url_for('static', filename='uploads/avatars/' ~ user.avatar) if user.avatar else 'https://i.pravatar.cc/100?u=' ~ user.id }}" class="w-14 h-14 rounded-full shadow" alt="avatar">
       <div>
         <div class="text-white font-semibold text-lg">{{ lot.seller }}</div>
         <div class="text-xs text-gray-400">На сайте {{ lot.years }} {{ 'год' if lot.years == 1 else 'года' }} · {{ lot.sales }} продаж</div>
@@ -78,5 +83,21 @@
   </div>
 
 </main>
+
+<!-- ───────── JS для галереи ───────── -->
+<script>
+(function(){
+  const main = document.getElementById('mainImage');
+  document.querySelectorAll('#gallery .thumb').forEach(thumb => {
+    thumb.addEventListener('click', () => {
+      // меняем src большого изображения
+      main.src = thumb.dataset.src;
+      // визуально выделяем выбранную миниатюру
+      document.querySelectorAll('#gallery .thumb').forEach(t => t.classList.remove('ring-2','ring-indigo-400'));
+      thumb.classList.add('ring-2','ring-indigo-400');
+    });
+  });
+})();
+</script>
 
 {% endblock %}

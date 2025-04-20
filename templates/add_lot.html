@@ -1,10 +1,11 @@
 {% extends 'base.html' %}
 {% block title %}Добавить лот — GameMarket{% endblock %}
+
 {% block content %}
 
 <h1 class="text-2xl font-bold text-indigo-400 mb-8 text-center">Добавить новый лот</h1>
 
-<form action="/submit-lot" method="POST" enctype="multipart/form-data" class="space-y-6 max-w-3xl mx-auto">
+<form action="{{ url_for('lot.submit_lot') }}" method="POST" enctype="multipart/form-data" class="space-y-6 max-w-3xl mx-auto">
 
   <!-- Название -->
   <div>
@@ -17,14 +18,14 @@
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div>
       <label class="block text-sm font-medium mb-1">Категория</label>
- <select name="category" required
-        class="w-full px-4 py-2 rounded bg-gray-800 border border-indigo-500 text-white">
-  <option value="" disabled selected>Выберите категорию</option>
-  <option value="Accounts">Аккаунты</option>
-  <option value="Keys">Ключи</option>
-  <option value="Currency">Валюта</option>
-  <option value="Services">Услуги</option>
-</select>
+      <select name="category" required
+              class="w-full px-4 py-2 rounded bg-gray-800 border border-indigo-500 text-white">
+        <option value="" disabled selected>Выберите категорию</option>
+        <option value="Accounts">Аккаунты</option>
+        <option value="Keys">Ключи</option>
+        <option value="Currency">Валюта</option>
+        <option value="Services">Услуги</option>
+      </select>
     </div>
     <div>
       <label class="block text-sm font-medium mb-1">Платформа</label>
@@ -37,13 +38,13 @@
   </div>
 
   <!-- Игра -->
-<div>
-  <label class="block text-sm font-medium mb-1">Игра</label>
-<select name="game_id" id="gameSelect" required
-        class="w-full px-4 py-2 pr-10 rounded bg-gray-800 border border-indigo-500 text-white appearance-none focus:ring-2 focus:ring-indigo-600">
-  <option value="" disabled selected>Выберите категорию сначала</option>
-</select>
-</div>
+  <div>
+    <label class="block text-sm font-medium mb-1">Игра</label>
+    <select name="game_id" id="gameSelect" required
+            class="w-full px-4 py-2 pr-10 rounded bg-gray-800 border border-indigo-500 text-white appearance-none focus:ring-2 focus:ring-indigo-600">
+      <option value="" disabled selected>Выберите категорию сначала</option>
+    </select>
+  </div>
 
   <!-- Описание -->
   <div>
@@ -57,7 +58,7 @@
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div>
       <label class="block text-sm font-medium mb-1">Цена (₽)</label>
-      <input type="number" name="price"
+      <input type="number" name="price" step="0.01" min="0"
              class="w-full px-4 py-2 rounded bg-gray-800 border border-indigo-500 text-white focus:ring-2 focus:ring-indigo-600">
     </div>
     <div class="flex items-center gap-2 mt-7">
@@ -81,79 +82,76 @@
               class="w-full px-4 py-2 rounded bg-gray-800 border border-indigo-500 text-white focus:ring-2 focus:ring-indigo-600"
               placeholder="login:pass\nlogin:pass\nключ и т.д..."></textarea>
   </div>
-<script>
-  document.querySelector('select[name="category"]').addEventListener('change', function () {
-    const category = this.value;
-    const gameSelect = document.getElementById('gameSelect');
-    gameSelect.innerHTML = '<option disabled selected>Загрузка...</option>';
-
-fetch(`/api/games?category=${encodeURIComponent(category)}`)
-    .then(response => response.json())
-      .then(data => {
-        gameSelect.innerHTML = '';
-        if (data.length > 0) {
-          data.forEach(game => {
-            const option = document.createElement('option');
-            option.value = game.id;
-            option.textContent = game.name;
-            gameSelect.appendChild(option);
-          });
-        } else {
-          gameSelect.innerHTML = '<option disabled>Нет игр для этой категории</option>';
-        }
-      });
-  });
-</script>
-  <script>
-    function toggleAutoDeliveryInput() {
-      const checkbox = document.getElementById('autodelivery');
-      const field = document.getElementById('autodelivery-data-field');
-      field.classList.toggle('hidden', !checkbox.checked);
-    }
-    document.getElementById('autodelivery').addEventListener('change', toggleAutoDeliveryInput);
-  </script>
 
   <!-- Скриншоты -->
   <div class="space-y-2">
     <label class="block text-sm font-medium mb-1">Скриншоты (можно несколько)</label>
-    <div class="relative">
-      <input type="file" id="images" name="images" multiple class="hidden">
-      <label for="images"
-             class="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg cursor-pointer transition">
-        🖼 Загрузить файлы
-      </label>
-    </div>
+    <input type="file" id="images" name="images[]" accept="image/*" multiple hidden>
+    <label for="images" class="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg cursor-pointer transition">
+      🖼 Выбрать файлы
+    </label>
     <ul id="fileList" class="text-xs text-gray-400 space-y-1"></ul>
     <div id="preview" class="flex flex-wrap gap-3 mt-3"></div>
   </div>
 
   <div class="text-center pt-6">
-    <button type="submit"
-            class="bg-indigo-600 hover:bg-indigo-700 px-6 py-2 rounded-lg text-white font-medium shadow-md transition">
+    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 px-6 py-2 rounded-lg text-white font-medium shadow-md transition">
       ✅ Опубликовать лот
     </button>
   </div>
 </form>
 
 <script>
-  const input = document.getElementById('images');
+  // --- динамический список игр по выбранной категории ---
+  document.querySelector('select[name="category"]').addEventListener('change', e => {
+    const category = e.target.value;
+    const gameSelect = document.getElementById('gameSelect');
+    gameSelect.innerHTML = '<option disabled selected>Загрузка...</option>';
+    fetch(`/api/games?category=${encodeURIComponent(category)}`)
+      .then(r => r.json())
+      .then(data => {
+        gameSelect.innerHTML = '';
+        if (data.length) {
+          data.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g.id;
+            opt.textContent = g.name;
+            gameSelect.appendChild(opt);
+          });
+        } else {
+          gameSelect.innerHTML = '<option disabled>Нет игр для этой категории</option>';
+        }
+      });
+  });
+
+  // --- автодоставка: показать поле ---
+  function toggleAutoField(){
+    const box = document.getElementById('autodelivery');
+    document.getElementById('autodelivery-data-field').classList.toggle('hidden', !box.checked);
+  }
+  document.getElementById('autodelivery').addEventListener('change', toggleAutoField);
+
+  // --- предпросмотр изображений ---
+  const input   = document.getElementById('images');
   const preview = document.getElementById('preview');
-  const fileList = document.getElementById('fileList');
+  const fileList= document.getElementById('fileList');
 
   input.addEventListener('change', () => {
     preview.innerHTML = '';
     fileList.innerHTML = '';
     Array.from(input.files).forEach(file => {
+      // превью
       const reader = new FileReader();
       reader.onload = e => {
         const img = document.createElement('img');
         img.src = e.target.result;
-        img.className = "w-24 h-24 object-cover rounded border border-gray-700";
+        img.className = 'w-24 h-24 object-cover rounded border border-gray-700';
         preview.appendChild(img);
       };
       reader.readAsDataURL(file);
+      // список файлов
       const li = document.createElement('li');
-      li.textContent = `📁 ${file.name}`;
+      li.textContent = `📁 ${file.name} (${(file.size/1024).toFixed(1)} КБ)`;
       fileList.appendChild(li);
     });
   });

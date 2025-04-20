@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from email.policy import default
 
@@ -31,6 +32,28 @@ class Lot(db.Model):
     user = db.relationship('User', backref=db.backref('lots', lazy=True))
     game_id = db.Column(db.Integer, db.ForeignKey('game.id'), nullable=True)
     game = db.relationship('Game', backref='lots')
+
+    @property
+    def images(self) -> list[str]:
+        """
+        Возвращает список имён файлов из image_filenames.
+        Поддерживает два формата хранения:
+        1. JSON‑массив: '["pic1.jpg","pic2.png"]'
+        2. Простая строка через запятую: 'pic1.jpg,pic2.png'
+        """
+        if not self.image_filenames:
+            return []
+
+        # пробуем как JSON
+        try:
+            data = json.loads(self.image_filenames)
+            if isinstance(data, list):
+                return data
+        except ValueError:
+            pass
+
+        # fallback: csv‑строка
+        return [s.strip() for s in self.image_filenames.split(',') if s.strip()]
 
 
 
@@ -87,3 +110,12 @@ class Message(db.Model):
         db.Index('idx_message_users', 'sender_id', 'receiver_id'),
         db.Index('idx_message_created', 'created_at'),
     )
+
+class Transaction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    amount = db.Column(db.Integer, nullable=False)
+    type = db.Column(db.String(50), nullable=False)  # 'deposit', 'purchase', 'withdrawal', 'refund'
+    status = db.Column(db.String(20), default='pending')  # 'pending', 'completed', 'failed'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    description = db.Column(db.Text, nullable=True)

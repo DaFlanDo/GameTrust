@@ -1,11 +1,12 @@
 import eventlet
 # 🧠 САМЫЙ ВЕРХ
+from apscheduler.schedulers.background import BackgroundScheduler
 
 from flask import Flask, send_from_directory, render_template
 import os
 from cryptography.fernet import Fernet
 from config import Config
-from extensions import db, login_manager, fernet, limiter, migrate
+from extensions import db, login_manager, fernet, limiter, migrate, cancel_expired_transactions
 from routes import register_blueprints
 from models import User
 
@@ -49,7 +50,9 @@ def test_error():
     raise Exception("🧨 Проверка ошибки 500")
 
 # ⬇️⬇️⬇️ Только теперь импортируй хендлеры
-
+scheduler = BackgroundScheduler()
+scheduler.add_job(cancel_expired_transactions, 'interval', minutes=1, args=[app])
+scheduler.start()
 # Запуск через socketio
 if __name__ == '__main__':
     app.run( debug=True,reload=True, port=5000)

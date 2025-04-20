@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% block title %}Финансовый кабинет — GameTrust{% endblock %}
+
+{% block content %}
+<!-- ───────── Flash‑сообщения ───────── -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div id="flash-messages"
+         class="fixed top-5 left-1/2 -translate-x-1/2 z-50 space-y-2">
+      {% for category, message in messages %}
+        <div class="px-4 py-3 rounded-lg shadow-lg text-sm font-medium animate-fade-in-down
+                    {{ 'bg-green-600 text-white' if category == 'success'
+                       else 'bg-red-600 text-white' }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+    <script>
+      setTimeout(() => document.getElementById('flash-messages')?.remove(), 4000);
+    </script>
+  {% endif %}
+{% endwith %}
+
+<div class="max-w-4xl mx-auto px-4 py-6">
+  <h1 class="text-2xl text-indigo-400 font-bold mb-4">💼 Финансовый кабинет</h1>
+
+  <!-- ───────── Баланс ───────── -->
+  <div class="bg-gray-800 p-6 rounded-xl shadow mb-6">
+    <p class="text-white text-lg">
+      💰 Баланс:
+      <span class="font-semibold">{{ current_user.balance }} ₽</span>
+    </p>
+    <p class="text-gray-400 text-sm mt-1">🔒 В удержании: {{ current_user.hold_balance }} ₽</p>
+    <div class="mt-4 space-x-2">
+      <button onclick="toggleModal('topupModal')"
+              class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
+        Пополнить
+      </button>
+      <button onclick="toggleModal('withdrawModal')"
+              class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg">
+        Вывести
+      </button>
+    </div>
+  </div>
+
+ <!-- ───────── История транзакций ───────── -->
+<h2 class="text-indigo-300 text-xl font-semibold mb-3">📜 История операций</h2>
+
+<!-- Заголовок таблицы -->
+<div class="grid grid-cols-4 gap-2 px-3 py-2 text-gray-400 text-xs uppercase">
+  <div>Дата</div>
+  <div>Описание</div>
+  <div class="text-right">Сумма</div>
+  <div class="text-right">Статус</div>
+</div>
+
+<div class="space-y-2 text-sm">
+{% for tx in transactions %}
+  {# ───── Вычисляем цвет суммы ───── #}
+  {% if tx.status == 'pending' %}
+      {% set amt_class = 'text-yellow-400' %}
+  {% elif tx.status == 'cancelled' %}
+      {% set amt_class = 'text-red-400' %}
+  {% elif tx.amount > 0 %}
+      {% set amt_class = 'text-green-400' %}
+  {% else %}
+      {% set amt_class = 'text-red-400' %}
+  {% endif %}
+
+  <div class="grid grid-cols-4 gap-2 bg-gray-700 rounded p-3">
+    <!-- Дата -->
+    <div>{{ tx.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+
+    <!-- Описание + «Отменить» для вывода -->
+    <div>
+      {{ tx.description }}
+      {% if tx.type == 'withdrawal' and tx.status == 'pending' %}
+        <form action="{{ url_for('finance.cancel_withdraw', transaction_id=tx.id) }}"
+              method="POST" class="inline-block ml-2">
+          <button class="text-red-400 hover:underline">Отменить</button>
+        </form>
+      {% endif %}
+    </div>
+
+    <!-- Сумма -->
+    <div class="text-right {{ amt_class }}">{{ tx.amount }} ₽</div>
+
+    <!-- Статус -->
+    <div class="text-right">
+      {% if tx.status == 'completed' %}
+        <span class="text-green-400">завершён</span>
+      {% elif tx.status == 'pending' %}
+        <span class="text-yellow-400">в ожидании</span>
+      {% elif tx.status == 'cancelled' %}
+        <span class="text-red-400">отменён</span>
+      {% else %}
+        {{ tx.status }}
+      {% endif %}
+    </div>
+  </div>
+{% endfor %}
+</div>
+
+<!-- ───────── Модальное окно пополнения ───────── -->
+<div id="topupModal"
+     class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-50">
+  <div class="bg-gray-900 p-6 rounded-xl shadow-lg w-full max-w-md relative border border-gray-700">
+    <button onclick="toggleModal('topupModal')"
+            class="absolute top-2 right-3 text-gray-400 hover:text-white text-xl">&times;</button>
+
+    <h2 class="text-xl font-semibold text-indigo-400 mb-4">Пополнение баланса</h2>
+
+    <form method="POST" action="{{ url_for('finance.init_topup') }}">
+      <label class="block text-sm text-white mb-2">Сумма (₽):</label>
+      <input type="number" name="amount" min="10" required
+             class="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white mb-4">
+
+      <label class="block text-sm text-white mb-2">Способ оплаты:</label>
+      <select name="method"
+              class="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white mb-4">
+        <option value="card">💳 Банковская карта</option>
+        <option value="yoomoney">💰 ЮMoney</option>
+        <option value="crypto">🪙 Криптовалюта</option>
+      </select>
+
+      <button type="submit"
+              class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded font-semibold">
+        Пополнить
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- ───────── Модальное окно вывода ───────── -->
+<div id="withdrawModal"
+     class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+  <div class="bg-gray-800 p-6 rounded-xl w-full max-w-md relative border border-gray-700">
+    <button onclick="toggleModal('withdrawModal')"
+            class="absolute top-2 right-3 text-gray-400 hover:text-white text-xl">&times;</button>
+
+    <h2 class="text-xl text-indigo-400 font-bold mb-4">Вывод средств</h2>
+
+    <form method="POST" action="{{ url_for('finance.withdraw_page') }}">
+      <label class="block text-sm text-white mb-2">Сумма (₽):</label>
+      <input type="number" name="amount" min="1" required
+             class="w-full p-2 rounded bg-gray-900 border border-gray-600 text-white">
+
+      <label class="block text-sm text-white mt-4 mb-2">Реквизиты:</label>
+      <input type="text" name="details" required
+             class="w-full p-2 rounded bg-gray-900 border border-gray-600 text-white">
+
+      <button type="submit"
+              class="mt-4 bg-yellow-600 hover:bg-yellow-700 w-full text-white px-4 py-2 rounded">
+        Запросить
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- ───────── JS ───────── -->
+<script>
+function toggleModal(id) {
+  document.getElementById(id)?.classList.toggle('hidden');
+}
+
+/* Анимация для flash‑сообщений */
+const style = document.createElement('style');
+style.textContent = `
+@keyframes fade-in-down {
+  from {opacity:0;transform:translateY(-10px)}
+  to   {opacity:1;transform:translateY(0)}
+}
+.animate-fade-in-down{animation:fade-in-down .4s ease-out}
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

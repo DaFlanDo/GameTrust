@@ -37,6 +37,8 @@
             <a href="{{ url_for('profile.user_profile', user_id=current_user.id) }}" class="block px-4 py-2 hover:bg-gray-800 text-sm">👤 Профиль</a>
               <a class="block px-4 py-2 hover:bg-gray-800 text-sm">Баланс: {{ current_user.balance }}</a>
 
+            <a href="{{ url_for('finance.dashboard') }}" class="block px-4 py-2 hover:bg-gray-800 text-sm">📦 Мои финансы</a>
+
             <a href="{{ url_for('lot.my_lots') }}" class="block px-4 py-2 hover:bg-gray-800 text-sm">📦 Мои лоты</a>
             <a href="{{ url_for('purchase.my_orders') }}" class="block px-4 py-2 hover:bg-gray-800 text-sm">🧾 Мои покупки</a>
               <a href="{{ url_for('lot.my_sales') }}" class="block px-4 py-2 hover:bg-gray-800 text-sm">📦 Мои продажи</a>

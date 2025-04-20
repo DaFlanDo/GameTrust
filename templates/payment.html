@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Имитация оплаты — GameTrust{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto px-4 py-10 text-white space-y-6">
+  <h1 class="text-3xl font-extrabold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-6">
+    💳 Имитация оплаты
+  </h1>
+
+  {% if transaction %}
+    <div class="bg-gray-900 border border-gray-700 rounded-2xl shadow-xl p-6 space-y-4">
+      <div class="text-lg">
+        <span class="text-gray-400">💵 Сумма:</span>
+        <span class="text-green-400 font-semibold">{{ transaction.amount }} ₽</span>
+      </div>
+      <div class="text-sm">
+        <span class="text-gray-400">📝 Описание:</span>
+        <span class="text-white">{{ transaction.description or 'Без описания' }}</span>
+      </div>
+      <div class="text-xs text-gray-500">
+        📅 {{ transaction.created_at.strftime('%d.%m.%Y %H:%M') }}
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6">
+      <form method="POST" action="{{ url_for('finance.confirm_payment', transaction_id=transaction.id) }}">
+        <button type="submit"
+                class="w-full inline-flex justify-center items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-xl shadow">
+          ✅ Оплатить
+        </button>
+      </form>
+      <form method="POST" action="{{ url_for('finance.cancel_payment', transaction_id=transaction.id) }}">
+        <button type="submit"
+                class="w-full inline-flex justify-center items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-xl shadow">
+          ❌ Отменить
+        </button>
+      </form>
+    </div>
+  {% else %}
+    <div class="text-center text-red-400 bg-gray-800 p-6 rounded-xl">
+      ⚠️ Транзакция не найдена.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

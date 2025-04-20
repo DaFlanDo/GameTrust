@@ -1,3 +1,5 @@
+import json
+import uuid
 from datetime import datetime
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, abort
@@ -16,8 +18,9 @@ def home():
     return render_template('index.html')
 @lot_bp.route('/lot/<int:lot_id>')
 def lot(lot_id):
+    user = current_user
     lot = Lot.query.get_or_404(lot_id)
-    return render_template('product.html', lot=lot)
+    return render_template('product.html', lot=lot,user=user)
 
 @lot_bp.route('/add-lot')
 @login_required
@@ -30,60 +33,67 @@ def add_lot():
 
 
 
-@lot_bp.route('/submit-lot', methods=['POST'])
+ALLOWED_EXT = {"png", "jpg", "jpeg", "webp", "gif",'heic'}
+
+def is_allowed(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXT
+
+@lot_bp.route("/submit-lot", methods=["POST"])
 @limiter.limit("3 per minute", methods=["POST"])
-
 @login_required
-
 def submit_lot():
-    title = request.form['title']
-    category = request.form['category']
-    platform = request.form['platform']
-    game_id = request.form.get('game_id')
-    description = request.form.get('description')
-    price = request.form['price']
-    quantity = int(request.form.get('quantity', 1))
-    autodelivery = 'autodelivery' in request.form
-    autodelivery_data = request.form.get('autodelivery_data')
+    # ───── 1. Собираем поля формы ─────
+    title       = request.form["title"]
+    category    = request.form["category"]
+    platform    = request.form["platform"]
+    game_id     = request.form.get("game_id")
+    description = request.form.get("description")
+    price       = request.form["price"]
+    quantity    = int(request.form.get("quantity", 1))
+    autodeliv   = "autodelivery" in request.form
+    autodata    = request.form.get("autodelivery_data", "")
 
-    if autodelivery:
-        lines = [line.strip() for line in autodelivery_data.strip().splitlines() if line.strip()]
+    # ───── 2. Валидируем автодоставку ─────
+    if autodeliv:
+        lines = [l.strip() for l in autodata.splitlines() if l.strip()]
         if len(lines) != quantity:
-            flash(f"Количество строк данных ({len(lines)}) не совпадает с количеством товара ({quantity})", "danger")
-            return redirect(url_for('lot.add_lot'))
-        plaintext = "\n".join(lines)
-        autodelivery_data = fernet.encrypt(plaintext.encode()).decode()
+            flash(f"Строк данных ({len(lines)}) ≠ количеству товара ({quantity})", "danger")
+            return redirect(url_for("lot.add_lot"))
+        plaintext   = "\n".join(lines)
+        autodata_enc= fernet.encrypt(plaintext.encode()).decode()
     else:
-        autodelivery_data = None
+        autodata_enc = None
 
-    files = request.files.getlist('images')
-    filenames = []
-    for file in files:
-        if file and file.filename:
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-            file.save(file_path)
-            filenames.append(filename)
+    # ───── 3. Сохраняем изображения ─────
+    saved_files = []
+    for file in request.files.getlist("images[]"):   # ← имя с []!
+        if file and file.filename and is_allowed(file.filename):
+            ext       = file.filename.rsplit(".", 1)[1].lower()
+            unique    = f"{uuid.uuid4().hex}.{ext}"
+            filename  = secure_filename(unique)
+            path      = os.path.join(current_app.static_folder, "uploads", filename)
+            file.save(path)
+            saved_files.append(filename)
 
+    # ───── 4. Создаём лот ─────
     new_lot = Lot(
-        title=title,
-        category=category,
-        platform=platform,
-        description=description,
-        price=price,
-        quantity=quantity,
-        autodelivery=autodelivery,
-        autodelivery_data=autodelivery_data,
-        image_filenames=",".join(filenames),
-        user_id=current_user.id,
-        game_id=game_id  # 💥 добавь вот это
+        title             = title,
+        category          = category,
+        platform          = platform,
+        description       = description,
+        price             = price,
+        quantity          = quantity,
+        autodelivery      = autodeliv,
+        autodelivery_data = autodata_enc,
+        image_filenames   = json.dumps(saved_files),   # ← JSON‑строка
+        user_id           = current_user.id,
+        game_id           = game_id
     )
-
     db.session.add(new_lot)
     db.session.commit()
-    flash("Лот успешно добавлен!", "success")
-    return redirect(url_for('lot.lots_by_game', category=category, game_id=game_id))
 
+    flash("Лот успешно добавлен!", "success")
+    return redirect(url_for("lot.lots_by_game", category=category, game_id=game_id))
 
 
 @lot_bp.route('/lots/<category>/<int:game_id>')
