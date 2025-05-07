@@ -1,0 +1,136 @@
+{% extends 'admin/admin_base.html' %}
+{% block content %}
+
+<h1 class="text-3xl font-bold text-white mb-8">
+  Лот #{{ lot.id }} — {{ lot.title }}
+</h1>
+
+<!-- Карточка лота -->
+<section class="bg-dark rounded-xl shadow p-6 text-white space-y-6">
+
+  <!-- Заголовок + статус -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h2 class="text-2xl font-semibold">{{ lot.title }}</h2>
+      <p class="text-gray-400 text-sm">
+        Создан: {{ lot.created_at.strftime('%d.%m.%Y %H:%M') }}
+      </p>
+    </div>
+
+    <span class="px-3 py-1 text-sm rounded
+      {% if lot.is_active %} bg-green-600 {% else %} bg-red-600 {% endif %}">
+      {{ 'Активен' if lot.is_active else 'Неактивен' }}
+    </span>
+  </div>
+
+  <!-- Описание -->
+  {% if lot.description %}
+  <div>
+    <h3 class="text-lg font-medium text-gray-400 mb-1">Описание</h3>
+    <p class="text-gray-300 whitespace-pre-line">{{ lot.description }}</p>
+  </div>
+  {% endif %}
+
+  <!-- Характеристики -->
+  <div class="grid grid-cols-2 gap-x-8 gap-y-2 text-gray-300">
+    <div><span class="text-gray-400">Цена:</span> {{ lot.price }} ₽</div>
+    <div><span class="text-gray-400">Количество:</span> {{ lot.quantity }}</div>
+    <div><span class="text-gray-400">Категория:</span> {{ lot.category or '—' }}</div>
+    <div><span class="text-gray-400">Игра:</span> {{ lot.game or '—' }}</div>
+  </div>
+
+  <!-- Продавец -->
+  <div>
+    <h3 class="text-lg font-medium text-gray-400 mb-1">Продавец</h3>
+    <a href="{{ url_for('admin.edit_user', user_id=lot.user.id) }}"
+       class="text-accent hover:underline">
+      {{ lot.user.username }}
+    </a>
+    <span class="text-gray-500 text-sm">(#{{ lot.user.id }})</span>
+  </div>
+
+  <!-- Действия -->
+  <div class="flex gap-4 pt-4 border-t border-gray-700">
+    <!-- Вкл/Выкл -->
+    <form method="post" action="{{ url_for('admin.toggle_lot', lot_id=lot.id) }}">
+      <button class="px-4 py-2 rounded bg-yellow-600 hover:bg-yellow-700 text-white">
+        {{ 'Отключить' if lot.is_active else 'Включить' }}
+      </button>
+    </form>
+    <!-- Удаление -->
+    <form method="post" action="{{ url_for('admin.delete_lot', lot_id=lot.id) }}"
+          onsubmit="return confirm('Удалить лот «{{ lot.title }}»?')">
+      <button class="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white">
+        Удалить
+      </button>
+    </form>
+  </div>
+
+</section>
+
+<!-- Покупки -->
+<section class="mt-10">
+  <h2 class="text-2xl font-semibold text-white mb-4">Покупки ({{ purchases|length }})</h2>
+  {% if purchases %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-left bg-dark rounded-xl overflow-hidden shadow">
+      <thead class="bg-gray-800 text-gray-400 text-sm uppercase">
+        <tr>
+          <th class="px-4 py-3">ID</th>
+          <th class="px-4 py-3">Покупатель</th>
+          <th class="px-4 py-3">Цена</th>
+          <th class="px-4 py-3">Статус</th>
+          <th class="px-4 py-3">Дата</th>
+        </tr>
+      </thead>
+      <tbody class="text-gray-300">
+        {% for p in purchases %}
+        <tr class="border-t border-gray-700 hover:bg-gray-800">
+          <td class="px-4 py-3">{{ p.id }}</td>
+          <td class="px-4 py-3">
+            <a href="{{ url_for('admin.edit_user', user_id=p.user_id) }}"
+               class="text-accent hover:underline">{{ p.buyer.username if p.buyer else '—' }}</a>
+          </td>
+          <td class="px-4 py-3">{{ p.lot_price }} ₽</td>
+          <td class="px-4 py-3">{{ p.status }}</td>
+          <td class="px-4 py-3">{{ p.created_at.strftime('%d.%m.%Y') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <p class="text-gray-400">Покупок ещё нет.</p>
+  {% endif %}
+</section>
+
+<!-- Отзывы -->
+<section class="mt-10">
+  <h2 class="text-2xl font-semibold text-white mb-4">Отзывы ({{ reviews|length }})</h2>
+  {% if reviews %}
+    <div class="space-y-4">
+    {% for r in reviews %}
+      <div class="bg-dark rounded-lg p-4 shadow flex justify-between items-start">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <span class="font-medium text-accent">{{ r.rating }}★</span>
+            <a href="{{ url_for('admin.edit_user', user_id=r.reviewer_id) }}"
+               class="hover:underline">{{ r.reviewer.username }}</a>
+            <span class="text-gray-500 text-xs">{{ r.created_at.strftime('%d.%m.%Y') }}</span>
+          </div>
+          <p class="text-gray-300 whitespace-pre-line">{{ r.comment }}</p>
+        </div>
+        <form method="post"
+              action="{{ url_for('admin.delete_review', review_id=r.id) }}"
+              onsubmit="return confirm('Удалить отзыв?')">
+          <button class="text-red-400 hover:text-red-500 text-sm">Удалить</button>
+        </form>
+      </div>
+    {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-gray-400">Пока отзывов нет.</p>
+  {% endif %}
+</section>
+
+{% endblock %}

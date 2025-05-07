@@ -2,15 +2,29 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>{% block title %}GameMarket{% endblock %}</title>
+  <title>{% block title %}GameTrust{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://cdn.tailwindcss.com"></script>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='branding/GameTrustLogo2.png') }}">
     </head>
 <body class="bg-gray-900 text-white min-h-screen">
 
-<header class="bg-gray-800 shadow">
+<header class="sticky top-0 z-50 backdrop-blur bg-gray-800/80 border-b border-indigo-700/30">    <div class="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
+
+<!-- logo -->
+<a href="/" class="flex items-center gap-3 group">
+  <img src="{{ url_for('static', filename='branding/GameTrustLogo2.png') }}"
+       alt="GameTrust logo"
+       class="w-12 h-12 rounded-xl shadow-lg group-hover:scale-105 transition duration-300">
+  <span class="hidden sm:inline-block font-extrabold text-xl tracking-tight
+               bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
+    GameTrust
+  </span>
+</a>
+
+    <!-- Desktop nav -->
+    <nav class="hidden md:flex items-center gap-6 text-sm">
   <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-    <a href="/" class="text-xl font-bold text-indigo-400">🎮 GameMarket</a>
 
     <nav class="text-sm relative flex items-center gap-6">
       {% if current_user.is_authenticated %}
@@ -39,7 +53,6 @@
 
             <a href="{{ url_for('finance.dashboard') }}" class="block px-4 py-2 hover:bg-gray-800 text-sm">📦 Мои финансы</a>
 
-            <a href="{{ url_for('lot.my_lots') }}" class="block px-4 py-2 hover:bg-gray-800 text-sm">📦 Мои лоты</a>
             <a href="{{ url_for('purchase.my_orders') }}" class="block px-4 py-2 hover:bg-gray-800 text-sm">🧾 Мои покупки</a>
               <a href="{{ url_for('lot.my_sales') }}" class="block px-4 py-2 hover:bg-gray-800 text-sm">📦 Мои продажи</a>
 
@@ -48,10 +61,18 @@
             <a href="{{ url_for('auth.logout') }}" class="block px-4 py-2 hover:bg-red-600 hover:text-white text-sm">🚪 Выход</a>
           </div>
         </div>
-      {% else %}
-        <a href="{{ url_for('auth.login') }}" class="hover:text-indigo-300 mr-4">Вход</a>
-        <a href="{{ url_for('auth.register') }}" class="hover:text-indigo-300">Регистрация</a>
-      {% endif %}
+    {% else %}
+  <div class="flex items-center gap-4">
+    <a href="{{ url_for('auth.login') }}"
+       class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm shadow transition">
+      Вход
+    </a>
+    <a href="{{ url_for('auth.register') }}"
+       class="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm shadow transition">
+      Регистрация
+    </a>
+  </div>
+{% endif %}
     </nav>
   </div>
 </header>
@@ -73,12 +94,29 @@
 
 </script>
 
-<main class="py-10 px-4">
+<main class="px-4">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="max-w-3xl mx-auto px-4 mt-6 space-y-3">
+        {% for category, message in messages %}
+          <div class="rounded-lg px-4 py-3 text-sm shadow
+                      {% if category == 'success' %}bg-green-600 text-white
+                      {% elif category == 'warning' %}bg-yellow-600 text-white
+                      {% elif category == 'danger' %}bg-red-600 text-white
+                      {% else %}bg-gray-800 text-white{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
   {% block content %}{% endblock %}
 </main>
 
 <footer class="text-center text-xs text-gray-500 py-6">
-  &copy; 2025 GameMarket — Сделано с любовью к геймерам 🎮
+  &copy; 2025 GameTrust — Сделано с любовью к геймерам 🎮
 </footer>
 
 </body>

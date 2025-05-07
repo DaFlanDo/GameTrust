@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ lot.title }} — GameMarket{% endblock %}
+{% block title %}{{ lot.title }} — GameTrust{% endblock %}
 {% block content %}
 
 <main class="max-w-5xl mx-auto px-4 py-10 space-y-8">
@@ -57,7 +57,7 @@
         </div>
 
         {% if lot.quantity > 0 %}
-        <form action="{{ url_for('purchase.start_purchase', lot_id=lot.id) }}" method="POST">
+        <form action="{{ url_for('purchase.start_purchase',public_id = lot.public_id) }}" method="POST">
           <button type="submit"
                   class="mt-4 sm:mt-0 bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition text-sm shadow">
             Купить
@@ -70,17 +70,24 @@
     </div>
   </div>
 
-  <!-- ───────── Карточка продавца ───────── -->
-  <div class="bg-gray-800 border border-gray-700 p-5 rounded-xl flex items-center justify-between">
+  <!-- Карточка продавца -->
+  <div class="bg-gray-900 border border-gray-700 p-5 rounded-xl flex items-center justify-between">
     <div class="flex items-center gap-4">
-      <img src="{{ url_for('static', filename='uploads/avatars/' ~ user.avatar) if user.avatar else 'https://i.pravatar.cc/100?u=' ~ user.id }}" class="w-14 h-14 rounded-full shadow" alt="avatar">
+      <img src="{{ url_for('static', filename='uploads/avatars/' ~ user.avatar) if user.avatar else 'https://i.pravatar.cc/100?u=' ~ user.id }}"
+           alt="avatar"
+           class="w-14 h-14 rounded-full object-cover shadow ring-1 ring-gray-700">
       <div>
         <div class="text-white font-semibold text-lg">{{ lot.seller }}</div>
-        <div class="text-xs text-gray-400">На сайте {{ lot.years }} {{ 'год' if lot.years == 1 else 'года' }} · {{ lot.sales }} продаж</div>
+<div class="text-xs text-gray-400">
+  На сайте {{ years }} {{ 'год' if years == 1 else 'года' }} · {{ sales }} продаж
+</div>
       </div>
     </div>
-    <a href="{{ url_for('profile.user_profile', user_id=lot.id) }}" class="text-sm text-indigo-400 hover:underline">Профиль продавца</a>
+    <a href="{{ url_for('profile.user_profile', user_id=lot.user_id) }}"
+       class="text-sm text-indigo-400 hover:underline">Профиль продавца</a>
   </div>
+</div>
+
 
 </main>
 

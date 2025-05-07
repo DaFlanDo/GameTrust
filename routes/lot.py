@@ -13,20 +13,46 @@ from models import Lot, Game, Review, User, Purchase
 
 lot_bp = Blueprint('lot', __name__)
 
+# Главная страница
 @lot_bp.route('/')
 def home():
-    return render_template('index.html')
-@lot_bp.route('/lot/<int:lot_id>')
-def lot(lot_id):
-    user = current_user
-    lot = Lot.query.get_or_404(lot_id)
-    return render_template('product.html', lot=lot,user=user)
+    popular_lots = Lot.query.filter_by(is_active=True).order_by(Lot.price.desc()).limit(9).all()
+    recent_orders = Purchase.query.order_by(Purchase.created_at.desc()).limit(8).all()
+    top_games = Game.query.order_by(Game.name).limit(8).all()
+    gallery_images = [url_for('static', filename=f'img/demo/{n}.jpg') for n in range(1, 8)]
 
+    return render_template("index.html",
+                           lots=popular_lots,
+                           recent_orders=recent_orders,
+                           top_games=top_games,
+                           gallery_images=gallery_images)
+
+# Подробная страница лота
+@lot_bp.route('/lot/<string:public_id>')
+def lot(public_id):
+    lot = Lot.query.filter_by(public_id=public_id).first_or_404()
+    seller = User.query.get_or_404(lot.user_id)
+
+    # Пример: сколько у продавца продаж
+    seller_sales = Purchase.query.filter_by(seller_id=seller.id).count()
+    years_on_site = max((datetime.utcnow() - seller.created_at).days // 365, 1)
+
+    return render_template(
+        'lots/product.html',
+        lot=lot,
+        user=seller,
+        sales=seller_sales,
+        years=years_on_site
+    )
+# Добавление лота - get
 @lot_bp.route('/add-lot')
 @login_required
 def add_lot():
+    if not current_user.is_confirmed:
+        flash("Для выставления лотов необходимо подтвердить email.", "warning")
+        return redirect(url_for('lot.home'))
     games = Game.query.order_by(Game.name).all()
-    return render_template('add_lot.html', games=games)
+    return render_template('lots/add_lot.html', games=games)
 
 
 
@@ -37,12 +63,16 @@ ALLOWED_EXT = {"png", "jpg", "jpeg", "webp", "gif",'heic'}
 
 def is_allowed(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXT
-
+# Добавление лота - POST
 @lot_bp.route("/submit-lot", methods=["POST"])
 @limiter.limit("3 per minute", methods=["POST"])
 @login_required
 def submit_lot():
-    # ───── 1. Собираем поля формы ─────
+    if not current_user.is_confirmed:
+        flash("Для выставления лотов необходимо подтвердить email.", "warning")
+        return redirect(url_for('auth.unconfirmed'))
+
+        # ───── 1. Собираем поля формы ─────
     title       = request.form["title"]
     category    = request.form["category"]
     platform    = request.form["platform"]
@@ -95,61 +125,85 @@ def submit_lot():
     flash("Лот успешно добавлен!", "success")
     return redirect(url_for("lot.lots_by_game", category=category, game_id=game_id))
 
-
+# Все лоты по категории
 @lot_bp.route('/lots/<category>/<int:game_id>')
-@login_required
 def lots(category, game_id):
     game = Game.query.get_or_404(game_id)
     distinct_categories = {g.category for g in Game.query.with_entities(Game.category).distinct()}
     if category not in distinct_categories:
-        return render_template('404.html'), 404
-    # 1) Получаем все лоты нужной категории и игры
+        return render_template('errors/404.html'), 404
+
+    # Читаем GET-параметры
+    platform = request.args.get('platform')
+    sort = request.args.get('sort')
+
+    # Базовый запрос
     lots_query = (
         Lot.query.options(db.joinedload(Lot.user), db.joinedload(Lot.game))
         .filter_by(category=category, game_id=game_id, is_active=True)
     )
-    lots = lots_query.all()
+    # Получаем параметры из URL
+    platform = request.args.get('platform')
+    sort = request.args.get('sort')
+    auto = request.args.get('auto') == '1'
 
-    # 2) Собираем user_id всех продавцов
+    # Базовый запрос
+    lots_query = (
+        Lot.query.options(db.joinedload(Lot.user), db.joinedload(Lot.game))
+        .filter_by(category=category, game_id=game_id, is_active=True)
+    )
+
+    # 🔎 Фильтрация по платформе
+    if platform in ['PC', 'PlayStation', 'Xbox']:
+        lots_query = lots_query.filter(Lot.platform == platform)
+
+    # ⚡ Фильтрация по автодоставке
+    if auto:
+        lots_query = lots_query.filter(Lot.autodelivery == True)
+
+    # 🔃 Сортировка
+    if sort == 'price_asc':
+        lots_query = lots_query.order_by(Lot.price.asc())
+    elif sort == 'price_desc':
+        lots_query = lots_query.order_by(Lot.price.desc())
+    elif sort == 'new':
+        lots_query = lots_query.order_by(Lot.created_at.desc())
+    else:
+        lots_query = lots_query.order_by(Lot.id.desc())  # По умолчанию — последние
+
+    page = request.args.get("page", 1, type=int)
+    per_page = 20
+    pagination = lots_query.paginate(page=page, per_page=per_page, error_out=False)
+    lots = pagination.items
+
+    # Все шаги как у тебя
     user_ids = {lot.user_id for lot in lots if lot.user_id is not None}
-
-    # 3) Считаем средний рейтинг для каждого продавца
     rating_data = (
         db.session.query(Review.seller_id, func.avg(Review.rating))
         .filter(Review.seller_id.in_(user_ids))
         .group_by(Review.seller_id)
         .all()
     )
-    # rating_data = [(seller_id, avg_rating), ...]
-
-    # Превращаем в словарь {seller_id: avg_rating}
     user_avg_ratings = {
         seller_id: round(avg_rating, 1) for seller_id, avg_rating in rating_data
     }
 
-    # 4) Достаём всех продавцов, чтобы вычислить «годы на сайте»
     users = User.query.filter(User.id.in_(user_ids)).all()
     users_dict = {u.id: u for u in users}
 
     def years_on_site(user):
-        """Вычисляет, сколько лет пользователь на сайте (округлённое вниз)."""
         if not user or not user.created_at:
             return 0
         delta_days = (datetime.utcnow() - user.created_at).days
-        return delta_days // 365  # целое число лет
+        return delta_days // 365
 
-    # 5) Формируем enriched_lots
     enriched_lots = []
     for lot in lots:
         user_obj = users_dict.get(lot.user_id)
         rating = user_avg_ratings.get(lot.user_id, 0.0)
         years = years_on_site(user_obj)
-        rating_int = int(rating) if rating <= 5 else 5  # Округлим вниз, макс 5
-
-        # Если description длинное, обрезаем и добавляем "..."
-        short_desc = None
-        if lot.description:
-            short_desc = lot.description[:80] + '...' if len(lot.description) > 80 else lot.description
+        rating_int = int(rating) if rating <= 5 else 5
+        short_desc = lot.description[:80] + '...' if lot.description and len(lot.description) > 80 else lot.description
         avatar_url = url_for('static',
                              filename=f'uploads/avatars/{user_obj.avatar}') if user_obj and user_obj.avatar else url_for(
             'static', filename='avatars/default.png')
@@ -157,6 +211,7 @@ def lots(category, game_id):
         enriched_lots.append({
             'id': lot.id,
             'title': lot.title,
+            'public_id': lot.public_id,
             'platform': lot.platform,
             'description': short_desc,
             'autodelivery': lot.autodelivery,
@@ -164,37 +219,41 @@ def lots(category, game_id):
             'seller': user_obj.username if user_obj else 'Без имени',
             'rating': rating,
             'rating_int': rating_int,
-            'game': lot.game,  # сам объект Game, если нужно
+            'game': lot.game,
             'on_site': human_time_since(user_obj.created_at) if user_obj else 'неизвестно',
-            'avatar_url': avatar_url  # 👈 добавляем сюда
-
+            'avatar_url': avatar_url,
         })
 
+
     return render_template(
-        'lots.html',
+        'auth/../templates/lots.html',
         lots=enriched_lots,
         category=category,
         game=game,
         user_avg_ratings=user_avg_ratings,
-        users_dict=users_dict
+        users_dict=users_dict,
+        platform=platform,
+        sort=sort,
+        auto=auto,
+        has_more=pagination.has_next,
+        page=page
     )
 
-
-@lot_bp.route('/lot/<int:lot_id>/delete', methods=['POST'])
+# Удаление лота
+@lot_bp.route('/lot/<string:public_id>/delete', methods=['POST'])
 @login_required
-def delete_lot(lot_id):
-    lot = Lot.query.get_or_404(lot_id)
+def delete_lot(public_id):
+    lot = Lot.query.filter_by(public_id=public_id).first_or_404()
     if lot.user_id != current_user.id:
         abort(403)
     db.session.delete(lot)
     db.session.commit()
     flash("Лот удалён", "success")
-    return redirect(url_for('lot.my_lots'))
+    return redirect(url_for('profile.user_profile',user_id=current_user.id))
 
 @lot_bp.route('/lots/<category>/<int:game_id>')
 def lots_by_game(category, game_id):
-    from sqlalchemy.orm import joinedload
-    from models import Game
+
 
     game = Game.query.get_or_404(game_id)
 
@@ -221,15 +280,14 @@ def lots_by_game(category, game_id):
             'game': lot.game  # добавляем игру в словарь
         })
     print(category,game_id)
-    return render_template('lots.html', lots=enriched_lots, category=category, game=game)
-@lot_bp.route('/edit-lot/<int:lot_id>', methods=['GET', 'POST'])
+    return render_template('auth/../templates/lots.html', lots=enriched_lots, category=category, game=game)
+@lot_bp.route('/edit-lot/<string:public_id>', methods=['GET', 'POST'])
 @login_required
-def edit_lot(lot_id):
-    lot = Lot.query.get_or_404(lot_id)
-
+def edit_lot(public_id):
+    lot = Lot.query.filter_by(public_id=public_id).first_or_404()
     if lot.user_id != current_user.id:
         flash("Вы не можете редактировать этот лот", "danger")
-        return redirect(url_for('lot.my_lots'))
+        return redirect(url_for('profile.user_profile',user_id=current_user.id))
 
     if request.method == 'POST':
         lot.title = request.form['title']
@@ -242,18 +300,12 @@ def edit_lot(lot_id):
         quantity = int(request.form.get('quantity', 1))
         if quantity < 1:
             flash("Количество должно быть не меньше 1", "danger")
-            return redirect(url_for('lot.edit_lot', lot_id=lot.id))
+            return redirect(url_for('lot.edit_lot', public_id=lot.public_id))
 
         db.session.commit()
-        return redirect(url_for('lot.my_lots'))
+        return redirect(url_for('profile.user_profile',user_id=current_user.id))
 
-    return render_template('edit_lot.html', lot=lot)
-@lot_bp.route('/my-lots')
-@login_required
-def my_lots():
-    lots = Lot.query.filter_by(user_id=current_user.id).order_by(Lot.created_at.desc()).all()
-    return render_template('my_lots.html', lots=lots)
-
+    return render_template('lots/edit_lot.html', lot=lot)
 def human_time_since(registration_date):
     from datetime import datetime
 
@@ -279,6 +331,7 @@ def plural_year(years):
     else:
         return "лет"
 
+
 @lot_bp.route('/my-sales')
 @login_required
 def my_sales():
@@ -303,7 +356,7 @@ def my_sales():
     reviews_by_purchase = {r.purchase_id: r for r in reviews}
 
     return render_template(
-        "my_sales.html",
+        "user/my_sales.html",
         purchases=purchases,
         users_dict=users_dict,
         reviews=reviews_by_purchase

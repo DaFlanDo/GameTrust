@@ -28,42 +28,33 @@ purchase_bp = Blueprint("purchase", __name__, url_prefix="/purchase")
 
 
 def create_purchase_and_schedule(lot: Lot) -> Purchase:
-    """
-    Списывает товар + готовит доставку, создаёт запись Purchase
-    и ставит таймер для перевода денег продавцу.
-    """
-    # --- автодоставка ---
-    delivery_data = None
-    if lot.autodelivery and lot.autodelivery_data:
-        decrypted = fernet.decrypt(lot.autodelivery_data.encode()).decode().splitlines()
-        delivery_data = decrypted.pop(0)
-        lot.autodelivery_data = fernet.encrypt("\n".join(decrypted).encode()).decode()
+    delivery_text = None
 
-    # --- уменьшаем количество товара ---
+    if lot.autodelivery and lot.autodelivery_data:
+        lines = fernet.decrypt(lot.autodelivery_data.encode()).decode().splitlines()
+        delivery_text = lines.pop(0)                                   # открытый ключ
+        lot.autodelivery_data = fernet.encrypt("\n".join(lines).encode()).decode()
+
     lot.quantity -= 1
     if lot.quantity <= 0:
         lot.is_active = False
 
-    # --- создаём покупку ---
     purchase = Purchase(
-        user_id=current_user.id,
-        lot_id=lot.id,
-        lot_title=lot.title,
-        lot_description=lot.description,
-        lot_category=lot.category,
-        lot_platform=lot.platform,
-        lot_price=lot.price,
-        seller_username=lot.user.username if lot.user else "Неизвестно",
-        delivery_data=delivery_data,
-        seller_id=lot.user_id,
+        user_id          = current_user.id,
+        lot_id           = lot.id,
+        lot_title        = lot.title,
+        lot_description  = lot.description,
+        lot_category     = lot.category,
+        lot_platform     = lot.platform,
+        lot_price        = lot.price,
+        seller_username  = lot.user.username if lot.user else "Неизвестно",
+        seller_id        = lot.user_id,
+        # ↙︎  кладём ЗАШИФРОВАННО
+        delivery_data    = fernet.encrypt(delivery_text.encode()).decode()
+                           if delivery_text else None
     )
     db.session.add(purchase)
-    db.session.flush()  # нужен purchase.id до commit
-
-    # сохраняем, чтобы вернуть ID после редиректа
-    current_user.last_purchase_id = purchase.id
-
-    # --- откладываем «завершение» + перевод в холд ---
+    db.session.flush()
     Timer(5, mark_purchase_paid, args=[purchase.id, current_app._get_current_object()]).start()
     return purchase
 
@@ -107,20 +98,20 @@ def mark_purchase_paid(purchase_id: int, app):
 # ────────────────────────── routes ──────────────────────────
 
 
-@purchase_bp.route("/buy/<int:lot_id>", methods=["POST"])
+@purchase_bp.route("/buy/<string:public_id>", methods=["POST"])
 @login_required
-def start_purchase(lot_id: int):
+def start_purchase(public_id: int):
     """Единая точка: либо покупаем сразу, либо редиректим на пополнение."""
-    lot = Lot.query.get_or_404(lot_id)
+    lot = Lot.query.filter_by(public_id=public_id).first_or_404()
 
     if not lot.is_active or lot.quantity <= 0:
         flash("Товар недоступен для покупки", "danger")
-        return redirect(url_for("lot.lot", lot_id=lot.id))
+        return redirect(url_for("lot.lot", public_id = lot.public_id))
 
     # денег не хватает
     if current_user.balance < lot.price:
         shortage = lot.price - current_user.balance
-        session["pending_lot_id"] = lot.id
+        session["pending_lot_public_id"] = lot.public_id
         flash(
             f"Не хватает {shortage} ₽. Пополните баланс — покупка завершится автоматически.",
             "warning",
@@ -134,33 +125,55 @@ def start_purchase(lot_id: int):
     db.session.commit()
 
     flash("Покупка успешно оформлена!", "success")
-    return redirect(url_for("purchase.checkout", purchase_id=purchase.id))
+    return redirect(url_for("purchase.checkout", public_id=purchase.public_id))
 
 
 # ────────────────────────── Checkout & Order ──────────────────────────
 
 
-@purchase_bp.route("/checkout/<int:purchase_id>")
+@purchase_bp.route("/checkout/<string:public_id>")
 @login_required
-def checkout(purchase_id: int):
-    purchase = Purchase.query.get_or_404(purchase_id)
+def checkout(public_id:str):
+    purchase = Purchase.query.filter_by(public_id=public_id).first_or_404()
     if purchase.user_id != current_user.id:
         flash("Это не ваш заказ!", "danger")
         return redirect(url_for("lot.home"))
     lot = Lot.query.get(purchase.lot_id)
-    return render_template("checkout.html", lot=lot, purchase=purchase)
+    return render_template("finance/checkout.html", lot=lot, purchase=purchase)
 
 
-@purchase_bp.route("/order/<int:purchase_id>")
+@purchase_bp.route("/order/<string:public_id>")
 @login_required
-def order(purchase_id: int):
-    purchase = Purchase.query.get_or_404(purchase_id)
+def order(public_id: str):
+    purchase = Purchase.query.filter_by(public_id=public_id).first_or_404()
+
+    # проверка доступа
     if purchase.user_id != current_user.id and purchase.seller_id != current_user.id:
         flash("Это не ваш заказ!", "danger")
         return redirect(url_for("lot.home"))
-    lot = Lot.query.get(purchase.lot_id)
+
+    lot    = Lot.query.get(purchase.lot_id)
     review = Review.query.filter_by(purchase_id=purchase.id).first()
-    return render_template("order.html", purchase=purchase, lot=lot, review=review)
+
+    # ───── расшифруем автодоставку (если есть) ─────
+    delivery_text = None
+    if purchase.delivery_data:                     # в БД – шифротекст
+        try:
+            delivery_text = fernet.decrypt(
+                purchase.delivery_data.encode()
+            ).decode()
+        except Exception:
+            current_app.logger.warning(
+                "Не удалось расшифровать delivery_data заказа %s", purchase.id
+            )
+
+    return render_template(
+        "finance/order.html",
+        purchase=purchase,
+        lot=lot,
+        review=review,
+        delivery_text=delivery_text     # ← передаём в шаблон
+    )
 
 
 # ────────────────────────── Список заказов ──────────────────────────
@@ -174,17 +187,16 @@ def my_orders():
         .order_by(Purchase.created_at.desc())
         .all()
     )
-    return render_template("my_orders.html", orders=orders)
+    return render_template("user/my_orders.html", orders=orders)
 
 
 # ────────────────────────── Отзыв ──────────────────────────
 
 
-@purchase_bp.route("/review/<int:purchase_id>", methods=["GET", "POST"])
+@purchase_bp.route("/review/<string:public_id>", methods=["GET", "POST"])
 @login_required
-def leave_review(purchase_id: int):
-    purchase = Purchase.query.get_or_404(purchase_id)
-
+def leave_review(public_id: int):
+    purchase = Purchase.query.filter_by(public_id=public_id).first_or_404()
     if purchase.user_id != current_user.id:
         flash("Вы не можете оставить отзыв к этому заказу", "danger")
         return redirect(url_for("purchase.my_orders"))
@@ -211,14 +223,14 @@ def leave_review(purchase_id: int):
     return render_template("leave_review.html", purchase=purchase)
 
 
-@purchase_bp.route("/confirm/<int:purchase_id>", methods=["POST"])
+@purchase_bp.route("/confirm/<string:public_id>", methods=["POST"])
 @login_required
-def confirm_receipt(purchase_id: int):
+def confirm_receipt(public_id: int):
     """
     Покупатель подтверждает, что получил товар.
     Деньги переходят из hold_balance на баланс продавца.
     """
-    purchase = Purchase.query.get_or_404(purchase_id)
+    purchase = Purchase.query.filter_by(public_id=public_id).first_or_404()
 
     # Разрешаем только покупателю подтверждать
     if purchase.user_id != current_user.id:
@@ -226,9 +238,10 @@ def confirm_receipt(purchase_id: int):
 
     if purchase.status != "paid":
         flash("Этот заказ ещё нельзя подтвердить.", "warning")
-        return redirect(url_for("purchase.order", purchase_id=purchase.id))
+        return redirect(url_for("purchase.order", public_id=purchase.public_id))
 
     purchase.status = "completed"
+    purchase.is_confirmed = True
 
     # переводим деньги продавцу
     seller = User.query.get(purchase.seller_id)
@@ -238,4 +251,4 @@ def confirm_receipt(purchase_id: int):
 
     db.session.commit()
     flash("Заказ подтверждён, средства переведены продавцу!", "success")
-    return redirect(url_for("purchase.order", purchase_id=purchase.id))
+    return redirect(url_for("purchase.order", public_id=purchase.public_id))

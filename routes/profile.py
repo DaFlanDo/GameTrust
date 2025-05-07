@@ -19,7 +19,6 @@ from datetime import datetime
 from sqlalchemy import func
 
 @profile_bp.route('/user/<int:user_id>', methods=['GET', 'POST'])
-@login_required
 def user_profile(user_id):
     user = User.query.get_or_404(user_id)
     if request.method == 'POST' and user.id == current_user.id:
@@ -44,16 +43,29 @@ def user_profile(user_id):
     years = max((datetime.utcnow() - user.created_at).days // 365, 1)
 
     lots_by_game = defaultdict(list)
-    for lot in Lot.query.filter_by(user_id=user.id).all():
+    lots = (
+        db.session.query(Lot)
+        .filter_by(user_id=user.id)
+        .join(Lot.game)
+        .options(db.contains_eager(Lot.game))
+        .all()
+    )
+
+    for lot in lots:
         game_name = lot.game.name if lot.game else 'Без названия'
         lots_by_game[game_name].append(lot)
 
-    reviews = Review.query.filter_by(seller_id=user.id).order_by(Review.created_at.desc()).all()
+    reviews = (
+        Review.query.filter_by(seller_id=user.id)
+        .order_by(Review.created_at.desc())
+        .limit(20)
+        .all()
+    )
     avg_rating = db.session.query(func.avg(Review.rating)).filter(Review.seller_id == user.id).scalar()
     avg_rating = round(avg_rating, 1) if avg_rating else 0.0
 
     return render_template(
-        'profile.html',
+        'user/profile.html',
         user=user,
         years=years,
         sales=sales_count,

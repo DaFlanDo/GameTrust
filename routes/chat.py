@@ -9,11 +9,10 @@ from models import User, Message
 
 chat_bp = Blueprint('chat', __name__)
 
-
+# Список сообщений
 @chat_bp.route('/messages')
 @login_required
 def message_list():
-    # Оптимизированный запрос для получения последних сообщений
     subquery = (
         db.session.query(
             func.max(Message.id).label('last_msg_id'),
@@ -37,10 +36,6 @@ def message_list():
     last_messages = (
         db.session.query(Message)
         .join(subquery, Message.id == subquery.c.last_msg_id)
-        .join(User, or_(
-            Message.sender_id == User.id,
-            Message.receiver_id == User.id
-        ))
         .options(db.joinedload(Message.sender), db.joinedload(Message.receiver))
         .order_by(desc(Message.created_at))
         .all()
@@ -50,14 +45,17 @@ def message_list():
     dialogs = []
     for msg in last_messages:
         other_user = msg.receiver if msg.sender_id == current_user.id else msg.sender
-        dialogs.append({
-            'user': other_user,
-            'message': msg
-        })
+        if other_user:
+            dialogs.append({
+                'user': other_user,
+                'message': msg
+            })
 
-    return render_template('messages.html', dialogs=dialogs)
 
 
+    return render_template('user/messages.html', dialogs=dialogs)
+
+# Чат с пользователем
 @chat_bp.route('/messages/<int:user_id>')
 @login_required
 def chat_with_user(user_id):
@@ -79,9 +77,9 @@ def chat_with_user(user_id):
         msg.is_read = True
     db.session.commit()
 
-    return render_template('chat.html', messages=messages, other_user=other_user)
+    return render_template('user/chat.html', messages=messages, other_user=other_user)
 
-
+# Longpool алгоритм для получения писем в +- реальном времени
 @chat_bp.route('/api/messages/longpoll/<int:user_id>')
 @login_required
 def long_poll_messages(user_id):
@@ -128,7 +126,7 @@ def long_poll_messages(user_id):
         waited += interval
 
     return jsonify({"status": "timeout", "messages": []})
-
+# Отправка сообщений
 @chat_bp.route('/send_message', methods=['POST'])
 @login_required
 def send_message():

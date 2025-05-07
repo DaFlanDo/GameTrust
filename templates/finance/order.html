@@ -1,10 +1,9 @@
 {% extends 'base.html' %}
-{% block title %}Заказ #{{ purchase.id }} — GameMarket{% endblock %}
-{% block content %}
+{% block title %}Заказ #{{ purchase.public_id }} — GameTrust{% endblock %}{% block content %}
 
 <div class="max-w-3xl mx-auto py-10 px-4 space-y-6">
 
-  <h1 class="text-3xl font-bold text-white">Ваш заказ #{{ purchase.id }}</h1>
+  <h1 class="text-3xl font-bold text-white">Ваш заказ #{{ purchase.public_id }}</h1>
 
   <!-- Информация о заказе -->
   <div class="bg-gray-800 rounded-xl p-6 shadow space-y-4 border border-gray-700">
@@ -36,8 +35,13 @@
   Статус:
 {% if purchase.status == 'paid' %}
   <span class="text-green-400 font-medium">✅ Оплачен</span>
+
 {% elif purchase.status == 'completed' %}
   <span class="text-blue-400 font-medium">📦 Завершён</span>
+
+{% elif purchase.status == 'refunded' %}
+  <span class="text-red-400 font-medium">💸 Возврат</span>
+
 {% else %}
   <span class="text-yellow-400 font-medium">⏳ Ожидается</span>
 {% endif %}
@@ -45,15 +49,26 @@
   </div>
 
   <!-- Автовыдача -->
-  {% if purchase.delivery_data %}
-    <div class="bg-indigo-900 rounded-xl p-6 shadow border border-indigo-600 text-left">
-      <h2 class="text-white font-bold mb-3 text-lg">📦 Ваш товар:</h2>
-      <pre class="text-green-400 bg-gray-900 p-4 rounded-lg overflow-auto text-sm">{{ purchase.delivery_data }}</pre>
-    </div>
-  {% endif %}
+{% if delivery_text %}
+  <section class="bg-gradient-to-b from-indigo-800 to-indigo-900/80 rounded-xl shadow-lg ring-1 ring-indigo-700/50 p-6 mb-8">
+    <h2 class="flex items-center gap-2 text-white font-semibold text-lg mb-4">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-300" fill="none"
+           viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="M3 3h18l-1 13H4L3 3zm3 16h12m-9-5h6m-6-4h6" />
+      </svg>
+      Ваш товар
+    </h2>
+
+    <pre class="whitespace-pre-wrap break-words text-green-300 bg-gray-900/70
+                rounded-lg p-5 text-sm leading-relaxed ring-1 ring-gray-700/50
+                backdrop-blur-sm overflow-x-auto">
+{{ delivery_text }}
+    </pre>
+  </section>
+{% endif %}
 {% if purchase.status == 'paid' and not purchase.is_confirmed %}
-  <form method="POST" action="{{ url_for('purchase.confirm_receipt', purchase_id=purchase.id) }}">
-    <button type="submit"
+<form method="POST" action="{{ url_for('purchase.confirm_receipt', public_id=purchase.public_id) }}">    <button type="submit"
             class="mt-6 bg-green-600 hover:bg-green-700 px-6 py-2 rounded-lg text-white text-sm transition">
       ✅ Подтвердить получение товара
     </button>
@@ -92,8 +107,8 @@
                   class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded transition">
             Сохранить
           </button>
-          <a href="{{ url_for('purchase.order', purchase_id=purchase.id) }}"
-             class="text-sm text-gray-400 hover:text-white self-center">Отмена</a>
+<a href="{{ url_for('purchase.order', public_id=purchase.public_id) }}"
+   class="text-sm text-gray-400 hover:text-white self-center">Отмена</a>
         </div>
       </form>
     {% else %}
@@ -106,8 +121,7 @@
             <span class="text-sm text-gray-500">— {{ review.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
           </div>
         </div>
-        <a href="{{ url_for('purchase.order', purchase_id=purchase.id, edit=1) }}"
-           class="text-indigo-400 hover:text-indigo-300 text-sm mt-1">✏️ Редактировать</a>
+<a href="{{ url_for('purchase.order', public_id=purchase.public_id, edit=1) }}"           class="text-indigo-400 hover:text-indigo-300 text-sm mt-1">✏️ Редактировать</a>
       </div>
       <div class="text-sm text-gray-300 whitespace-pre-wrap border-t border-gray-700 pt-3">
         {{ review.comment }}
@@ -119,8 +133,7 @@
   <!-- Новая форма отзыва -->
   <div class="bg-gray-800 rounded-xl p-6 shadow border border-gray-700">
     <h2 class="text-white font-semibold text-lg mb-3">📝 Оставить отзыв</h2>
-    <form action="{{ url_for('review.submit_review', purchase_id=purchase.id) }}" method="POST" class="space-y-4">
-      <div class="space-y-3">
+<form action="{{ url_for('review.submit_review', public_id=purchase.public_id) }}" method="POST" class="space-y-4">      <div class="space-y-3">
         <label class="block text-white font-semibold text-lg">Оценка</label>
         <div class="flex flex-col space-y-2">
           {% for i in range(5, 0, -1) %}

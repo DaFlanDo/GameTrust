@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Оплата — GameMarket{% endblock %}
+{% block title %}Оплата — GameTrust{% endblock %}
 {% block content %}
 
 <div class="max-w-3xl mx-auto py-12 px-4 space-y-6">
@@ -14,7 +14,7 @@
       <div class="text-sm text-yellow-400">⏳ Ожидается подтверждение оплаты... (авто через 5 сек)</div>
       <script>
         setTimeout(() => {
-          window.location.href = "{{ url_for('purchase.order', purchase_id=purchase.id) }}";
+          window.location.href = "{{ url_for('purchase.order', public_id=purchase.public_id) }}";
         }, 6000);
       </script>
     {% elif purchase.status == 'paid' %}

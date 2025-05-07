@@ -1,0 +1,30 @@
+{% extends 'admin/admin_base.html' %}
+{% block content %}
+
+<h1 class="text-3xl font-bold text-white mb-8">Чаты пользователей</h1>
+
+<div class="bg-dark rounded-xl p-6 shadow">
+  <table class="w-full text-left">
+    <thead class="text-gray-400 text-sm uppercase border-b border-gray-700">
+      <tr>
+        <th class="py-2">Пользователь 1</th>
+        <th class="py-2">Пользователь 2</th>
+        <th class="py-2">Перейти</th>
+      </tr>
+    </thead>
+    <tbody class="text-gray-200">
+      {% for user1, user2 in chats %}
+      <tr class="border-b border-gray-800 hover:bg-gray-800">
+        <td class="py-2">{{ user1.username }}</td>
+        <td class="py-2">{{ user2.username }}</td>
+        <td class="py-2">
+          <a href="{{ url_for('admin.view_chat', user1_id=user1.id, user2_id=user2.id) }}"
+             class="text-accent hover:underline text-sm">Открыть</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

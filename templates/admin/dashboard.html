@@ -1,0 +1,123 @@
+{% extends 'admin/admin_base.html' %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-white mb-8">Панель администратора</h1>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+  <div class="bg-dark rounded-xl shadow p-6">
+    <div class="text-gray-400 flex items-center gap-2">
+      <i class="fas fa-users text-accent text-lg"></i> Пользователи
+    </div>
+    <div class="text-3xl font-bold mt-2">{{ user_count }}</div>
+  </div>
+  <div class="bg-dark rounded-xl shadow p-6">
+    <div class="text-gray-400 flex items-center gap-2">
+      <i class="fas fa-box text-accent text-lg"></i> Лоты
+    </div>
+    <div class="text-3xl font-bold mt-2">{{ lot_count }}</div>
+  </div>
+  <div class="bg-dark rounded-xl shadow p-6">
+    <div class="text-gray-400 flex items-center gap-2">
+      <i class="fas fa-shopping-cart text-accent text-lg"></i> Покупки
+    </div>
+    <div class="text-3xl font-bold mt-2">{{ purchase_count }}</div>
+  </div>
+  <div class="bg-dark rounded-xl shadow p-6">
+    <div class="text-gray-400 flex items-center gap-2">
+      <i class="fas fa-star text-accent text-lg"></i> Отзывы
+    </div>
+    <div class="text-3xl font-bold mt-2">{{ review_count }}</div>
+  </div>
+  <div class="bg-dark rounded-xl shadow p-6">
+    <div class="text-gray-400 flex items-center gap-2">
+      <i class="fas fa-envelope text-accent text-lg"></i> Непрочитанные сообщения
+    </div>
+    <div class="text-3xl font-bold mt-2">{{ message_count }}</div>
+  </div>
+  <div class="bg-dark rounded-xl shadow p-6">
+    <div class="text-gray-400 flex items-center gap-2">
+      <i class="fas fa-coins text-accent text-lg"></i> Баланс пользователей
+    </div>
+    <div class="text-3xl font-bold mt-2">{{ total_balance }} ₽</div>
+  </div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
+
+  <!-- График регистрации -->
+  <div class="bg-dark rounded-xl p-6 shadow">
+    <h2 class="text-lg font-bold mb-4 text-white">Новые пользователи</h2>
+    <canvas id="chartUsers"></canvas>
+  </div>
+
+  <!-- График лотов -->
+  <div class="bg-dark rounded-xl p-6 shadow">
+    <h2 class="text-lg font-bold mb-4 text-white">Добавленные лоты</h2>
+    <canvas id="chartLots"></canvas>
+  </div>
+
+  <!-- График покупок -->
+  <div class="bg-dark rounded-xl p-6 shadow">
+    <h2 class="text-lg font-bold mb-4 text-white">Покупки</h2>
+    <canvas id="chartPurchases"></canvas>
+  </div>
+
+  <!-- График дохода -->
+  <div class="bg-dark rounded-xl p-6 shadow">
+    <h2 class="text-lg font-bold mb-4 text-white">Доход (₽)</h2>
+    <canvas id="chartIncome"></canvas>
+  </div>
+
+  <!-- Активность сообщений -->
+  <div class="bg-dark rounded-xl p-6 shadow md:col-span-2">
+    <h2 class="text-lg font-bold mb-4 text-white">Сообщения</h2>
+    <canvas id="chartMessages"></canvas>
+  </div>
+
+</div>
+
+<script>
+  const labels = {{ chart_labels|safe }};
+
+  const options = {
+    responsive: true,
+    plugins: {
+      legend: { labels: { color: 'white' } }
+    },
+    scales: {
+      x: { ticks: { color: 'white' } },
+      y: { ticks: { color: 'white' } }
+    }
+  };
+
+  const createChart = (id, label, data, type='line') => {
+    new Chart(document.getElementById(id).getContext('2d'), {
+      type: type,
+      data: {
+        labels: labels,
+        datasets: [{
+          label: label,
+          data: data,
+          backgroundColor: 'rgba(99, 102, 241, 0.2)',
+          borderColor: 'rgba(99, 102, 241, 1)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 3,
+          pointHoverRadius: 5
+        }]
+      },
+      options: options
+    });
+  };
+
+  createChart("chartUsers", "Пользователи", {{ users_per_day|safe }});
+  createChart("chartLots", "Лоты", {{ lots_per_day|safe }}, 'bar');
+  createChart("chartPurchases", "Покупки", {{ purchases_per_day|safe }}, 'bar');
+  createChart("chartIncome", "Доход", {{ income_per_day|safe }});
+  createChart("chartMessages", "Сообщения", {{ messages_per_day|safe }});
+</script>
+<div class="bg-dark rounded-xl p-6 shadow text-center">
+  <h2 class="text-xl font-bold text-white mb-4">Активность (заглушка)</h2>
+  <div class="text-gray-500 italic">Здесь можно подключить Chart.js или ApexCharts для графика</div>
+</div>
+{% endblock %}

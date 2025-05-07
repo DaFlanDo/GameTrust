@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Подтверждение почты — GameTrust{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto px-6 py-12 text-center bg-gray-800/70 border border-gray-700 rounded-2xl shadow-lg mt-10">
+  <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 mb-6">
+    📩 Подтверждение почты
+  </h1>
+
+  <p class="text-gray-300 text-sm mb-4">
+    Мы отправили письмо с подтверждением на ваш email. Пожалуйста, перейдите по ссылке в письме, чтобы активировать аккаунт.
+  </p>
+
+  <div class="bg-gray-900 p-4 rounded-lg border border-gray-700 text-left text-sm text-gray-400 mb-6">
+    <p class="mb-1"><strong>Не пришло письмо?</strong></p>
+    <ul class="list-disc list-inside space-y-1">
+      <li>Проверьте папку <strong>"Спам"</strong> или <strong>"Промоакции"</strong></li>
+      <li>Убедитесь, что вы правильно указали email</li>
+      <li>Можно запросить письмо повторно ниже</li>
+    </ul>
+  </div>
+
+  <form method="POST" action="{{ url_for('auth.resend_confirmation', email=email) }}">
+    <button type="submit"
+            class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-full text-white font-medium shadow transition">
+      🔁 Отправить письмо повторно
+    </button>
+  </form>
+</div>
+{% endblock %}

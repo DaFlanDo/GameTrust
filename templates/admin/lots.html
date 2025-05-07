@@ -1,0 +1,64 @@
+{% extends 'admin/admin_base.html' %}
+{% block content %}
+
+<h1 class="text-3xl font-bold text-white mb-8">Управление лотами</h1>
+
+<!-- Поиск -->
+<form method="get" class="mb-6 flex gap-4">
+  <input type="text" name="q" placeholder="Поиск по названию"
+         value="{{ search }}" class="px-4 py-2 rounded bg-gray-800 text-white w-80">
+  <button type="submit" class="bg-accent text-white px-4 py-2 rounded">Поиск</button>
+</form>
+
+<!-- Таблица лотов -->
+<div class="overflow-x-auto">
+  <table class="w-full text-left bg-dark rounded-xl overflow-hidden shadow">
+    <thead class="bg-gray-800 text-gray-400 text-sm uppercase">
+      <tr>
+        <th class="px-4 py-3">ID</th>
+        <th class="px-4 py-3">Название</th>
+        <th class="px-4 py-3">Пользователь</th>
+        <th class="px-4 py-3">Цена</th>
+        <th class="px-4 py-3">Кол-во</th>
+        <th class="px-4 py-3">Статус</th>
+        <th class="px-4 py-3">Действия</th>
+      </tr>
+    </thead>
+    <tbody class="text-gray-300">
+      {% for lot in lots %}
+      <tr class="border-t border-gray-700 hover:bg-gray-800">
+        <td class="px-4 py-3">{{ lot.id }}</td>
+        <td class="px-4 py-3">
+<a href="{{ url_for('admin.view_lot', lot_id=lot.id) }}" class="text-accent hover:underline">
+  {{ lot.title }}
+</a>        </td>
+        <td class="px-4 py-3">{{ lot.user.username }}</td>
+        <td class="px-4 py-3">{{ lot.price }} ₽</td>
+        <td class="px-4 py-3">{{ lot.quantity }}</td>
+        <td class="px-4 py-3">
+          {% if lot.is_active %}
+            <span class="text-green-500">Активен</span>
+          {% else %}
+            <span class="text-red-500">Неактивен</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 flex gap-2">
+          <!-- Деактивация -->
+          <form method="post" action="{{ url_for('admin.toggle_lot', lot_id=lot.id) }}">
+            <button class="text-yellow-400 hover:underline text-sm">
+              {% if lot.is_active %} Отключить {% else %} Включить {% endif %}
+            </button>
+          </form>
+          <!-- Удаление -->
+          <form method="post" action="{{ url_for('admin.delete_lot', lot_id=lot.id) }}"
+                onsubmit="return confirm('Удалить лот {{ lot.title }}?')">
+            <button class="text-red-500 hover:underline text-sm">Удалить</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

@@ -7,7 +7,7 @@ game_bp = Blueprint('game', __name__)
 @game_bp.route('/category/<string:category>')
 def show_games(category):
     games = Game.query.filter_by(category=category).all()
-    return render_template('games.html', category=category, games=games)
+    return render_template('lots/games.html', category=category, games=games)
 
 @game_bp.route('/api/games')
 def get_games_by_category():

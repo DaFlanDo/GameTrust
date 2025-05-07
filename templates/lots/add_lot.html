@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% block title %}Добавить лот — GameTrust{% endblock %}
+{% block content %}
+
+<h1 class="text-3xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 mb-10">
+  ✨ Добавить новый лот
+</h1>
+
+<form action="{{ url_for('lot.submit_lot') }}" method="POST" enctype="multipart/form-data"
+      class="space-y-8 max-w-3xl mx-auto p-6 bg-gray-800/60 rounded-2xl border border-gray-700 shadow-xl">
+
+  <!-- Название -->
+  <div>
+    <label class="block text-sm font-semibold mb-2 text-indigo-300">📛 Название</label>
+    <input type="text" name="title" required
+           class="w-full px-4 py-3 rounded-xl bg-gray-900 border border-indigo-500 placeholder-gray-500 text-white focus:ring-2 focus:ring-indigo-600 focus:outline-none transition">
+  </div>
+
+  <!-- Категория + Платформа -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div>
+      <label class="block text-sm font-semibold mb-2 text-indigo-300">📂 Категория</label>
+      <select name="category" required
+              class="w-full px-4 py-3 rounded-xl bg-gray-900 border border-indigo-500 text-white">
+        <option value="" disabled selected>Выберите категорию</option>
+        <option value="Accounts">Аккаунты</option>
+        <option value="Keys">Ключи</option>
+        <option value="Currency">Валюта</option>
+        <option value="Services">Услуги</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-sm font-semibold mb-2 text-indigo-300">🎮 Платформа</label>
+      <select name="platform"
+              class="w-full px-4 py-3 rounded-xl bg-gray-900 border border-indigo-500 text-white">
+        <option>PC</option>
+        <option>PlayStation</option>
+        <option>Xbox</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Игра -->
+  <div>
+    <label class="block text-sm font-semibold mb-2 text-indigo-300">🕹 Игра</label>
+    <select name="game_id" id="gameSelect" required
+            class="w-full px-4 py-3 rounded-xl bg-gray-900 border border-indigo-500 text-white">
+      <option value="" disabled selected>Выберите категорию сначала</option>
+    </select>
+  </div>
+
+  <!-- Описание -->
+  <div>
+    <label class="block text-sm font-semibold mb-2 text-indigo-300">📝 Описание</label>
+    <textarea name="description" rows="4"
+              class="w-full px-4 py-3 rounded-xl bg-gray-900 border border-indigo-500 text-white resize-none focus:ring-2 focus:ring-indigo-600"
+              placeholder="Опишите ваш лот..."></textarea>
+  </div>
+
+  <!-- Цена + Автодоставка -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+    <div>
+      <label class="block text-sm font-semibold mb-2 text-indigo-300">💵 Цена (₽)</label>
+      <input type="number" name="price" min="0"
+             class="w-full px-4 py-3 rounded-xl bg-gray-900 border border-indigo-500 text-white focus:ring-2 focus:ring-indigo-600">
+    </div>
+    <div class="flex items-center gap-3">
+      <input type="checkbox" name="autodelivery" id="autodelivery"
+             class="accent-indigo-600 w-5 h-5 rounded bg-gray-900 border-indigo-500">
+      <label for="autodelivery" class="text-sm text-indigo-300">⚡ Включить автодоставку</label>
+    </div>
+  </div>
+
+  <!-- Количество -->
+  <div>
+    <label class="block text-sm font-semibold mb-2 text-indigo-300">📦 Количество</label>
+    <input type="number" name="quantity" min="1" value="1"
+           class="w-full px-4 py-3 rounded-xl bg-gray-900 border border-indigo-500 text-white focus:ring-2 focus:ring-indigo-600">
+  </div>
+
+  <!-- Автодоставка -->
+  <div id="autodelivery-data-field" class="mt-6 hidden">
+    <label class="block text-sm font-semibold mb-2 text-indigo-300">
+      📤 Данные для моментальной выдачи (по одной строке на товар)
+    </label>
+    <textarea name="autodelivery_data" rows="5"
+              class="w-full px-4 py-3 rounded-xl bg-gray-900 border border-indigo-500 text-white resize-none focus:ring-2 focus:ring-indigo-600"
+              placeholder="login:pass\nключи и т.д..."></textarea>
+  </div>
+
+  <!-- Скриншоты -->
+  <div class="space-y-3">
+    <label class="block text-sm font-semibold text-indigo-300">🖼 Скриншоты</label>
+    <input type="file" id="images" name="images[]" accept="image/*" multiple hidden>
+    <label for="images" class="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-indigo-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white text-sm rounded-lg cursor-pointer transition shadow-md">
+      📎 Выбрать файлы
+    </label>
+    <ul id="fileList" class="text-xs text-gray-400 space-y-1"></ul>
+    <div id="preview" class="flex flex-wrap gap-3 mt-3"></div>
+  </div>
+
+  <!-- Кнопка -->
+  <div class="text-center pt-8">
+    <button type="submit"
+            class="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 px-6 py-3 rounded-xl text-white font-semibold text-lg shadow-lg transition transform hover:scale-105">
+      ✅ Опубликовать лот
+    </button>
+  </div>
+</form>
+
+<script>
+  // --- динамический список игр по выбранной категории ---
+  document.querySelector('select[name="category"]').addEventListener('change', e => {
+    const category = e.target.value;
+    const gameSelect = document.getElementById('gameSelect');
+    gameSelect.innerHTML = '<option disabled selected>Загрузка...</option>';
+    fetch(`/api/games?category=${encodeURIComponent(category)}`)
+      .then(r => r.json())
+      .then(data => {
+        gameSelect.innerHTML = '';
+        if (data.length) {
+          data.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g.id;
+            opt.textContent = g.name;
+            gameSelect.appendChild(opt);
+          });
+        } else {
+          gameSelect.innerHTML = '<option disabled>Нет игр для этой категории</option>';
+        }
+      });
+  });
+
+  // --- автодоставка: показать поле ---
+  function toggleAutoField(){
+    const box = document.getElementById('autodelivery');
+    document.getElementById('autodelivery-data-field').classList.toggle('hidden', !box.checked);
+  }
+  document.getElementById('autodelivery').addEventListener('change', toggleAutoField);
+
+  // --- предпросмотр изображений ---
+  const input   = document.getElementById('images');
+  const preview = document.getElementById('preview');
+  const fileList= document.getElementById('fileList');
+
+  input.addEventListener('change', () => {
+    preview.innerHTML = '';
+    fileList.innerHTML = '';
+    Array.from(input.files).forEach(file => {
+      // превью
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        img.className = 'w-24 h-24 object-cover rounded border border-gray-700';
+        preview.appendChild(img);
+      };
+      reader.readAsDataURL(file);
+      // список файлов
+      const li = document.createElement('li');
+      li.textContent = `📁 ${file.name} (${(file.size/1024).toFixed(1)} КБ)`;
+      fileList.appendChild(li);
+    });
+  });
+</script>
+<script>
+
+  const qtyInput  = document.querySelector('input[name="quantity"]');
+  const autoBox   = document.getElementById('autodelivery');
+  const autoField = document.querySelector('textarea[name="autodelivery_data"]');
+
+  // элемент-индикатор
+  const warn = document.createElement('p');
+  warn.className = 'text-red-400 text-sm mt-1 hidden';
+  warn.textContent = 'Количество строк не совпадает с числом товаров!';
+  autoField.parentNode.appendChild(warn);
+
+  function lineCount(text){
+    return text.trim() ? text.trim().split(/\r?\n/).length : 0;
+  }
+
+  function validateLines(){
+    if (!autoBox.checked) { warn.classList.add('hidden'); return true; }
+    const needed = parseInt(qtyInput.value || '0', 10);
+    const lines  = lineCount(autoField.value);
+    const ok = lines === needed;
+    warn.classList.toggle('hidden', ok);
+    return ok;
+  }
+
+  qtyInput .addEventListener('input', validateLines);
+  autoField.addEventListener('input', validateLines);
+
+  // проверка перед отправкой формы
+  document.querySelector('form').addEventListener('submit', e=>{
+    if(!validateLines()){
+      e.preventDefault();
+      autoField.focus();
+    }
+  });
+</script>
+{% endblock %}

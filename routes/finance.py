@@ -14,7 +14,7 @@ def dashboard():
                     .filter_by(user_id=current_user.id)
                     .order_by(Transaction.created_at.desc())
                     .all())
-    return render_template('finance.html', transactions=transactions)
+    return render_template('finance/finance.html', transactions=transactions)
 
 # ───────── 2. Пополнение (быстрый вариант, сразу зачисляем) ─────────
 @finance_bp.route('/topup', methods=['GET', 'POST'])
@@ -37,7 +37,7 @@ def topup_page():
             return redirect(url_for('finance.dashboard'))
         flash('Минимальная сумма пополнения — 10 ₽', 'danger')
 
-    return render_template('finance.html', block='topup')
+    return render_template('finance/finance.html', block='topup')
 
 # ───────── 3. Пополнение через «фейковую» оплату ─────────
 @finance_bp.route('/topup/init', methods=['POST'])
@@ -137,14 +137,14 @@ def fake_payment(transaction_id):
         flash('Эта транзакция уже закрыта', 'info')
         return redirect(url_for('finance.dashboard'))
 
-    return render_template('payment.html', transaction=tx)
+    return render_template('finance/payment.html', transaction=tx)
 
 
 
 @finance_bp.route('/topup/pay/<int:transaction_id>/cancel', methods=['POST'])
 @login_required
 def cancel_payment(transaction_id):
-    """Кнопка «❌ Отменить»."""
+    """Кнопка «Отменить»."""
     tx = Transaction.query.filter_by(
         id=transaction_id,
         user_id=current_user.id,
@@ -165,10 +165,10 @@ def topup_shortage():
     amount = max(int(request.args.get("amount", 0)), 10)
 
     # 1. узнаём, какой лот ждёт оплаты
-    lot_id = session.get("pending_lot_id")
-    lot = Lot.query.get(lot_id) if lot_id else None
+    lot_public_id = session.get("pending_lot_public_id")
+    lot = Lot.query.filter_by(public_id=lot_public_id).first() if lot_public_id else None
     description = (
-        f"Оплата лота «{lot.title} »" if lot else "Пополнение для покупки"
+        f"Оплата лота «{lot.title} - {lot.public_id} »" if lot else "Пополнение для покупки"
     )
 
     # 2. создаём транзакцию с понятным описанием

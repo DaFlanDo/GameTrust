@@ -1,0 +1,72 @@
+{% extends 'admin/admin_base.html' %}
+{% block content %}
+
+<h1 class="text-3xl font-bold text-white mb-8">Заказ #{{ order.id }}</h1>
+
+<div class="grid md:grid-cols-3 gap-6">
+
+  <!-- Детали -->
+  <section class="md:col-span-2 bg-dark rounded-xl p-6 shadow text-white space-y-6">
+
+    <!-- Статус, дата -->
+    <div class="flex justify-between">
+      <p>
+        <span class="text-gray-400">Статус:</span>
+        {% if order.status == 'refunded' %}
+          <span class="text-red-400">Возврат</span>
+        {% elif order.is_confirmed %}
+          <span class="text-green-500">Подтверждён</span>
+        {% else %}
+          <span class="text-yellow-400">Ожидает</span>
+        {% endif %}
+      </p>
+      <p class="text-gray-400">{{ order.created_at.strftime('%d.%m.%Y %H:%M') }}</p>
+    </div>
+
+    <!-- Снимок лота -->
+    <article class="space-y-2">
+      <h2 class="text-xl font-semibold">{{ order.lot_title }}</h2>   <!-- snapshot -->
+      <p class="text-gray-400 text-sm">
+        Категория: {{ order.lot_category }}<br>
+        Платформа: {{ order.lot_platform }}
+      </p>
+      <p class="whitespace-pre-line text-gray-300">{{ order.lot_description }}</p>  <!-- snapshot -->
+      <p class="text-lg font-medium">Цена: {{ order.lot_price }} ₽</p>              <!-- snapshot -->
+    </article>
+
+    <!-- Участники -->
+    <div class="grid grid-cols-2 gap-4 pt-4 border-t border-gray-700 text-gray-300">
+      <div>
+        <span class="text-gray-400">Покупатель:</span><br>
+        <a href="{{ url_for('admin.edit_user', user_id=buyer.id) }}"
+           class="text-accent hover:underline">{{ buyer.username }}</a>
+      </div>
+      {% if seller %}
+      <div>
+        <span class="text-gray-400">Продавец:</span><br>
+        <a href="{{ url_for('admin.edit_user', user_id=seller.id) }}"
+           class="text-accent hover:underline">{{ seller.username }}</a>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- Чат -->
+  <aside class="bg-dark rounded-xl p-6 shadow text-white overflow-y-auto max-h-[70vh]">
+    <h2 class="text-xl font-semibold mb-4">Чат</h2>
+    {% if messages %}
+      {% for m in messages %}
+        <div class="text-sm mb-2">
+          <span class="font-semibold {% if m.sender_id == buyer.id %}text-accent{% endif %}">
+            {{ m.sender.username }}
+          </span>:
+          {{ m.content }}
+          <span class="text-gray-500 text-xs">{{ m.created_at.strftime('%d.%m %H:%M') }}</span>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="text-gray-400 text-sm">Сообщений нет.</p>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

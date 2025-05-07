@@ -8,6 +8,8 @@ from .lot import lot_bp
 from .profile import profile_bp
 from .purchase import purchase_bp
 from .game import game_bp
+from .totp import security_bp
+
 
 def register_blueprints(app):
     app.register_blueprint(auth_bp)
@@ -18,3 +20,4 @@ def register_blueprints(app):
     app.register_blueprint(review_bp)
     app.register_blueprint(chat_bp)
     app.register_blueprint(finance_bp)
+    app.register_blueprint(security_bp)

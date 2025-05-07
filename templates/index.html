@@ -1,49 +1,175 @@
+{# templates/index.html #}
 {% extends 'base.html' %}
-{% block title %}Главная — GameMarket{% endblock %}
+{% block title %}Главная — GameTrust{% endblock %}
 {% block content %}
 
-<!-- Hero-секция -->
-<section class="text-center mb-10">
-  <h1 class="text-4xl font-bold text-indigo-400">Добро пожаловать в GameMarket</h1>
-  <p class="text-gray-400 mt-2">Площадка для покупки и продажи аккаунтов, ключей и внутриигровых товаров</p>
+<!-- ─────────── Hero ─────────── -->
+<section class="text-center mb-14">
+  <h1 class="text-5xl sm:text-6xl font-extrabold tracking-tight text-transparent
+             bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
+    GameTrust
+  </h1>
+  <p class="text-gray-400 mt-4 text-lg">
+    Покупайте и продавайте&nbsp;аккаунты, ключи и внутриигровые товары — быстро и безопасно
+  </p>
 </section>
 
-<!-- Категории -->
-<section class="mb-12">
-  <h2 class="text-2xl font-bold text-indigo-300 mb-4">Категории</h2>
-  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-    <a href="{{ url_for('game.show_games', category='Accounts') }}" class="bg-gray-800 p-5 rounded-xl text-center hover:bg-gray-700 transition">
-      🎮<div class="font-semibold mt-2">Аккаунты</div>
+<!-- декоративная волна -->
+<div class="relative -mx-8 mb-16">
+  <svg class="w-full h-20 text-indigo-800/60" viewBox="0 0 1440 100" preserveAspectRatio="none">
+    <path fill="currentColor"
+          d="M0,0 C240,80 480,80 720,40 C960,0 1200,0 1440,40 L1440,100 L0,100 Z"/>
+  </svg>
+</div>
+
+<!-- ─────────── Категории ─────────── -->
+<section class="mb-16">
+  <h2 class="text-3xl font-bold text-indigo-300 mb-8 text-center">Категории</h2>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+
+    <a href="{{ url_for('game.show_games', category='Accounts') }}"
+       class="bg-gray-800/60 hover:bg-gray-800/90 p-8 rounded-2xl shadow-lg backdrop-blur
+              flex flex-col items-center transition group">
+      <span class="text-5xl">🎮</span>
+      <span class="mt-3 font-semibold text-lg group-hover:text-indigo-300">Аккаунты</span>
     </a>
-    <a href="{{ url_for('game.show_games', category='Keys') }}" class="bg-gray-800 p-5 rounded-xl text-center hover:bg-gray-700 transition">
-      🔑<div class="font-semibold mt-2">Ключи</div>
+
+    <a href="{{ url_for('game.show_games', category='Keys') }}"
+       class="bg-gray-800/60 hover:bg-gray-800/90 p-8 rounded-2xl shadow-lg backdrop-blur
+              flex flex-col items-center transition group">
+      <span class="text-5xl">🔑</span>
+      <span class="mt-3 font-semibold text-lg group-hover:text-indigo-300">Ключи</span>
     </a>
-    <a href="{{ url_for('game.show_games', category='Currency') }}" class="bg-gray-800 p-5 rounded-xl text-center hover:bg-gray-700 transition">
-      💰<div class="font-semibold mt-2">Валюта</div>
+
+    <a href="{{ url_for('game.show_games', category='Currency') }}"
+       class="bg-gray-800/60 hover:bg-gray-800/90 p-8 rounded-2xl shadow-lg backdrop-blur
+              flex flex-col items-center transition group">
+      <span class="text-5xl">💰</span>
+      <span class="mt-3 font-semibold text-lg group-hover:text-indigo-300">Валюта</span>
     </a>
-    <a href="{{ url_for('game.show_games', category='Services') }}" class="bg-gray-800 p-5 rounded-xl text-center hover:bg-gray-700 transition">
-      🛠️<div class="font-semibold mt-2">Услуги</div>
+
+    <a href="{{ url_for('game.show_games', category='Services') }}"
+       class="bg-gray-800/60 hover:bg-gray-800/90 p-8 rounded-2xl shadow-lg backdrop-blur
+              flex flex-col items-center transition group">
+      <span class="text-5xl">🛠️</span>
+      <span class="mt-3 font-semibold text-lg group-hover:text-indigo-300">Услуги</span>
+    </a>
+
+  </div>
+</section>
+
+<!-- ─────────── Последние покупки (бегущая лента) ─────────── -->
+{% if recent_orders %}
+<section class="mb-20">
+  <h2 class="text-3xl font-bold text-indigo-300 mb-6 text-center">🚀 Последние покупки</h2>
+  <div class="overflow-hidden">
+    <div class="flex gap-8 animate-roll">
+      {% for o in recent_orders %}
+        <div class="bg-gray-800/70 px-6 py-3 rounded-full shadow text-sm whitespace-nowrap
+                    backdrop-blur-lg">
+          <span class="text-indigo-400 font-medium">{{ o.user.username }}</span> купил
+          <span class="text-green-400 font-semibold">{{ o.lot_title }}</span> за
+          <span class="text-green-400 font-semibold">{{ o.lot_price }} ₽</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<style>
+@keyframes roll { 0% { transform: translateX(100%)} 100% {transform: translateX(-100%)} }
+.animate-roll { animation: roll 28s linear infinite }
+</style>
+{% endif %}
+
+<!-- ─────────── Наши преимущества ─────────── -->
+<section class="mb-20">
+  <h2 class="text-3xl font-bold text-indigo-300 mb-8 text-center">Почему выбирают нас</h2>
+  <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+
+    {% macro card(emoji, title, text) -%}
+    <div class="bg-gray-800/60 backdrop-blur rounded-2xl px-6 py-8 shadow-lg text-center">
+      <div class="text-5xl mb-3">{{ emoji }}</div>
+      <h3 class="font-semibold text-lg mb-2 text-indigo-200">{{ title }}</h3>
+      <p class="text-gray-400 text-sm leading-relaxed">{{ text }}</p>
+    </div>
+    {%- endmacro %}
+
+    {{ card('🔒', 'Безопасные сделки',
+            'Средства передаются продавцу\nтолько после подтверждения покупки.') }}
+    {{ card('⚡', 'Моментальная выдача',
+            'Автодоставка ключей мгновенно,\nбез ожидания продавца.') }}
+    {{ card('⭐', 'Рейтинги продавцов',
+            'Отзывы и рейтинг помогают\nвыбрать надёжного партнёра.') }}
+    {{ card('💬', 'Поддержка 24 / 7',
+            'Оперативно решаем любые вопросы\nпо вашим заказам.') }}
+  </div>
+</section>
+
+<!-- ─────────── CTA ─────────── -->
+<section class="mb-20">
+  <div class="bg-gradient-to-r from-indigo-700/90 to-purple-700/90 p-10 rounded-3xl
+              flex flex-col lg:flex-row items-center justify-between gap-6 shadow-xl">
+    <div>
+      <h2 class="text-3xl font-bold text-white mb-2">Начните продавать уже сегодня</h2>
+      <p class="text-indigo-200">Разместите лот бесплатно и получите доступ к тысячам покупателей.</p>
+    </div>
+    <a href="{{ url_for('lot.add_lot') }}"
+       class="px-8 py-4 bg-white/10 hover:bg-white/20 rounded-xl font-medium text-white
+              shadow transition backdrop-blur-lg">
+      Создать лот
     </a>
   </div>
 </section>
 
-<!-- Популярные товары -->
-<section>
-  <h2 class="text-2xl font-bold text-indigo-300 mb-4">🔥 Популярные лоты</h2>
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- ─────────── Популярные лоты ─────────── -->
+<section class="mb-12">
+  <h2 class="text-3xl font-bold text-indigo-300 mb-6 text-center">🔥 Популярные лоты</h2>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
     {% for lot in lots %}
-      <div class="bg-gray-800 p-4 rounded-lg shadow hover:shadow-indigo-500/30 transition">
-        <h3 class="text-lg font-semibold">{{ lot.title }}</h3>
-        <p class="text-sm text-gray-400">{{ lot.description[:80] }}...</p>
-        <div class="mt-3 flex justify-between items-center">
-          <span class="text-green-400 font-bold">{{ lot.price }} ₽</span>
-          <a href="{{ url_for('lot.lot', lot_id=lot.id) }}" class="text-sm text-indigo-400 hover:underline">Подробнее</a>
+      <div class="relative bg-gray-800/60 backdrop-blur rounded-2xl p-6 shadow-lg
+                  hover:shadow-indigo-500/40 transition">
+        <!-- Рамка-ховер -->
+        <span class="absolute inset-0 rounded-2xl ring-1 ring-indigo-500/0
+                     hover:ring-indigo-500/40 transition"></span>
+
+        <h3 class="text-lg font-semibold mb-1 text-indigo-200">{{ lot.title }}</h3>
+        <p class="text-sm text-gray-400 mb-4">{{ lot.description[:100] }}{% if lot.description|length > 100 %}…{% endif %}</p>
+        <div class="flex justify-between items-end">
+          <span class="text-green-400 font-bold text-lg">{{ lot.price }} ₽</span>
+          <a href="{{ url_for('lot.lot', public_id=lot.public_id) }}"
+             class="text-sm text-indigo-400 hover:underline">Подробнее</a>
         </div>
       </div>
     {% else %}
-      <p class="text-gray-500">Лоты пока не добавлены.</p>
+      <p class="text-gray-500 col-span-full text-center">Лоты пока не добавлены.</p>
     {% endfor %}
   </div>
 </section>
+
+    <section class="mb-24 max-w-3xl mx-auto px-4">
+  <h2 class="text-3xl font-bold text-indigo-300 mb-8 text-center">FAQ</h2>
+
+  {% macro faq(q,a,i) -%}
+  <div x-data="{open:false}" class="mb-4 border border-gray-700/60 rounded-xl">
+    <button @click="open=!open" class="w-full flex justify-between items-center p-4">
+      <span class="font-medium text-left">{{ q }}</span>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition"
+           :class="{'rotate-180':open}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M19 9l-7 7-7-7"/>
+      </svg>
+    </button>
+    <div x-show="open" x-collapse class="p-4 pt-0 text-gray-400 leading-relaxed">
+      {{ a }}
+    </div>
+  </div>
+  {%- endmacro %}
+
+  {{ faq('Как работает гарантия сделки?','Средства хранятся на нашем счёте до тех пор, пока вы не подтвердите получение товара. Продавец получает деньги только после вашего подтверждения.',1) }}
+  {{ faq('Что такое автодоставка?','Это моментальная выдача ключа/аккаунта сразу после оплаты. Продавец заранее загружает данные, и вы получаете их в личном кабинете.',2) }}
+  {{ faq('Какой процент комиссии площадки?','Комиссия составляет 5 % от суммы продажи и автоматически вычитается при выводе средств продавцом.',3) }}
+</section>
+
 
 {% endblock %}

@@ -7,6 +7,8 @@ from wtforms.validators import DataRequired, Email, Length, EqualTo
 class LoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email(), Length(max=120)])
     password = PasswordField('Пароль', validators=[DataRequired(), Length(min=6)])
+    totp_code = StringField('TOTP Code')  # Optional 2FA code field
+    backup_code = StringField('Backup Code')  # Optional backup code field
     submit = SubmitField('Войти')
 
 class RegisterForm(FlaskForm):

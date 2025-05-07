@@ -4,80 +4,58 @@ from app import app
 from extensions import db
 from models import Game, User, Lot
 
-with app.app_context():
-    # Очистка базы
-    db.drop_all()
-    db.create_all()
 
-    # Добавим игры с английскими категориями
-    games = [
-        Game(name="GTA V", category="Keys"),
-        Game(name="CS:GO Prime", category="Accounts"),
-        Game(name="FIFA 23 Coins", category="Currency"),
-        Game(name="Boosting Valorant", category="Services"),
-    ]
-    db.session.bulk_save_objects(games)
-    db.session.commit()
 
-    # Добавим тестового пользователя
-    test_user = User(
-        username="testuser",
-        email="test@example.com",
-        password=generate_password_hash("123456"),
-        avatar="default.png",
-        created_at=datetime(2022, 1, 1)
+import random
+from datetime import datetime
+from faker import Faker
+
+from app import app
+from extensions import db, fernet
+from models import Lot
+
+fake = Faker('ru_RU')
+
+categories = ['Keys', 'Accounts', 'Services']
+platforms = ['PC', 'PlayStation', 'Xbox']
+games = ['GTA 5', 'FIFA 24', 'CS2', 'Minecraft', 'Fortnite', 'Valorant', 'Rust']
+
+def generate_fake_lot(user_id=1, game_id=1):
+    title = f"{random.choice(games)} {random.randint(1, 999)}"
+    category = random.choice(categories)
+    platform = random.choice(platforms)
+    description = fake.paragraph(nb_sentences=3)
+    price = random.randint(100, 9999)
+    autodelivery = random.choice([True, False])
+    quantity = random.randint(1, 10)
+    is_active = random.choice([True, True, True, False])
+
+    # Пример зашифрованных данных
+    autodelivery_data = fernet.encrypt(fake.text(max_nb_chars=30).encode()).decode() if autodelivery else None
+
+    # Массив изображений (JSON-строка)
+    images = [f"{fake.uuid4()[:8]}.jpg" for _ in range(random.randint(0, 3))]
+    image_filenames = str(images) if images else None
+
+    return Lot(
+        title=title,
+        category=category,
+        platform=platform,
+        description=description,
+        price=price,
+        quantity=quantity,
+        autodelivery=autodelivery,
+        autodelivery_data=autodelivery_data,
+        image_filenames=image_filenames,
+        created_at=datetime.utcnow(),
+        user_id=user_id,
+        game_id=game_id,
+        is_active=is_active
     )
-    db.session.add(test_user)
-    db.session.commit()
 
-    # Добавим лоты от testuser
-    lots = [
-        Lot(
-            title="GTA V Social Club",
-            description="Ключ активации GTA V в Social Club",
-            price=599,
-            platform="PC",
-            category="Keys",
-            is_active=True,
-            autodelivery=True,
-            game_id=games[0].id,
-            user_id=test_user.id
-        ),
-        Lot(
-            title="CS:GO Prime аккаунт",
-            description="Прайм аккаунт, идеально подходит для соревновательных игр",
-            price=399,
-            platform="PC",
-            category="Accounts",
-            is_active=True,
-            autodelivery=False,
-            game_id=games[1].id,
-            user_id=test_user.id
-        ),
-        Lot(
-            title="100K FIFA 23 Coins",
-            description="Быстрая доставка на платформу PS5",
-            price=200,
-            platform="PlayStation",
-            category="Currency",
-            is_active=True,
-            autodelivery=True,
-            game_id=games[2].id,
-            user_id=test_user.id
-        ),
-        Lot(
-            title="Boost до Gold в Valorant",
-            description="Поднятие рейтинга до Gold 1 с гарантией!",
-            price=1500,
-            platform="PC",
-            category="Services",
-            is_active=True,
-            autodelivery=False,
-            game_id=games[3].id,
-            user_id=test_user.id
-        ),
-    ]
-    db.session.bulk_save_objects(lots)
-    db.session.commit()
 
-    print("✅ База данных успешно заполнена!")
+with app.app_context():
+    fake_lots = [generate_fake_lot(user_id=3, game_id=random.randint(1, 5)) for _ in range(500)]
+    db.session.add_all(fake_lots)
+    db.session.commit()
+    print("✅ Сгенерировано и добавлено 15 лотов.")

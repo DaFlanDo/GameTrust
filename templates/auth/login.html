@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% block title %}Вход — GameTrust{% endblock %}
+{% block content %}
+
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-tr from-indigo-800 via-purple-700 to-pink-600 py-10">
+
+  <div class="bg-gray-900 rounded-3xl shadow-2xl overflow-hidden w-full max-w-4xl flex flex-col md:flex-row animate-fadeIn">
+
+    <!-- Левая часть (можно заменить или убрать при желании) -->
+    <div class="md:w-1/2 hidden md:block">
+      <img src="{{ url_for('static', filename='img/login-art.png') }}" class="h-full w-full object-cover" alt="Login art">
+    </div>
+
+    <!-- Форма -->
+    <div class="w-full md:w-1/2 p-8 md:p-12">
+      <h2 class="text-3xl font-bold text-indigo-400 text-center mb-2">С возвращением 👋</h2>
+      <p class="text-center text-gray-400 mb-6">Войдите в аккаунт, чтобы продолжить</p>
+
+      <!-- Flash-сообщения -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="space-y-2 mb-4">
+            {% for category, message in messages %}
+              <div class="px-4 py-3 rounded-lg text-sm font-medium bg-red-600/10 text-red-400 border border-red-600/30">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-6">
+        {{ form.hidden_tag() }}
+        <input type="hidden" name="totp_code" id="totp-code-hidden">
+        <input type="hidden" name="backup_code" id="backup-code-hidden">
+
+        <!-- Email -->
+        <div>
+          {{ form.email.label(class_='block text-sm font-medium text-gray-300 mb-1') }}
+          {{ form.email(class_='w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:outline-none') }}
+          {% if form.email.errors %}
+            <p class="text-sm text-red-500 mt-1">{{ form.email.errors[0] }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Пароль -->
+        <div>
+          {{ form.password.label(class_='block text-sm font-medium text-gray-300 mb-1') }}
+          {{ form.password(class_='w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:outline-none') }}
+          {% if form.password.errors %}
+            <p class="text-sm text-red-500 mt-1">{{ form.password.errors[0] }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Кнопка -->
+        <button type="submit"
+                class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition">
+          🔐 {{ form.submit.label.text }}
+        </button>
+      </form>
+
+      {% if show_2fa_modal %}
+      <div id="twofa-modal" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
+        <div class="bg-gray-900 rounded-xl shadow-2xl border border-indigo-700 w-full max-w-md p-6 animate-fade-in">
+          <h3 class="text-xl font-bold text-white text-center mb-4">🔐 Подтвердите вход</h3>
+          <p class="text-sm text-gray-400 text-center mb-4">Введите код из приложения 2FA или один из резервных кодов.</p>
+
+          <form method="POST" class="space-y-4">
+            {{ form.csrf_token }}
+            <input type="hidden" name="email" value="{{ form.email.data }}">
+            <input type="hidden" name="password" value="{{ form.password.data }}">
+            <input type="hidden" name="totp_code" id="totp-code-hidden-modal">
+            <input type="hidden" name="backup_code" id="backup-code-hidden-modal">
+
+            <!-- TOTP -->
+            <div>
+              <label class="block text-sm text-gray-300 mb-1">Код из приложения</label>
+              <div class="flex justify-between gap-2">
+                {% for i in range(6) %}
+                <input type="text" maxlength="1" pattern="[0-9]*" inputmode="numeric"
+                       class="w-full px-2 py-3 rounded bg-gray-800 border border-indigo-500 text-white text-center text-xl code-input">
+                {% endfor %}
+              </div>
+              <input type="hidden" name="totp_code" id="totp-code">
+            </div>
+
+            <!-- Backup -->
+            <div>
+              <label class="block text-sm text-gray-300 mb-1">или резервный код</label>
+              <input type="text" name="backup_code"
+                     class="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700 text-white font-mono text-sm text-center"
+                     placeholder="например: a1b2c3d4e5">
+            </div>
+
+            <button type="submit"
+                    class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded shadow">
+              ✅ Подтвердить
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <script>
+        const inputs = document.querySelectorAll('.code-input');
+        inputs.forEach((input, index) => {
+          input.addEventListener('input', () => {
+            if (input.value.length === 1 && index < inputs.length - 1) {
+              inputs[index + 1].focus();
+            }
+            collectCode();
+          });
+          input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !input.value && index > 0) {
+              inputs[index - 1].focus();
+            }
+          });
+          input.addEventListener('paste', (e) => {
+            const paste = (e.clipboardData || window.clipboardData).getData('text');
+            if (/^\d{6}$/.test(paste)) {
+              e.preventDefault();
+              paste.split('').forEach((char, i) => {
+                if (inputs[i]) inputs[i].value = char;
+              });
+              collectCode();
+              inputs[5].focus();
+            }
+          });
+        });
+
+        function collectCode() {
+          const code = Array.from(inputs).map(i => i.value).join('');
+          document.getElementById('totp-code').value = code;
+          document.getElementById('totp-code-hidden').value = code;
+          document.getElementById('totp-code-hidden-modal').value = code;
+        }
+      </script>
+      <script>
+        const backupInput = document.querySelector('input[name="backup_code"]');
+        const backupHidden = document.getElementById('backup-code-hidden');
+        const backupHiddenModal = document.getElementById('backup-code-hidden-modal');
+        backupInput.addEventListener('input', () => {
+          backupHidden.value = backupInput.value;
+          backupHiddenModal.value = backupInput.value;
+        });
+      </script>
+      {% endif %}
+
+      <p class="text-sm text-center text-gray-400 mt-6">
+        Нет аккаунта?
+        <a href="{{ url_for('auth.register') }}" class="text-indigo-400 hover:underline">Регистрация</a>
+      </p>
+    </div>
+
+  </div>
+
+</div>
+
+{% endblock %}

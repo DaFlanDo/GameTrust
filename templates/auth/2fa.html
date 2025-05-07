@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}Двухфакторная аутентификация — GameTrust{% endblock %}
+{% block content %}
+
+<!-- === 2FA SETUP / STATUS === -->
+ <section class="relative min-h-[calc(100vh-6rem)] w-full flex items-center justify-center bg-gradient-to-tr from-[#0e0e16] via-[#15162a] to-[#0e0e16] px-4 py-10 overflow-hidden">  <div class="absolute -top-20 -left-20 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl"></div>
+  <div class="absolute -bottom-24 -right-24 w-[32rem] h-[32rem] bg-pink-500/10 rounded-full blur-3xl"></div>
+
+<div class="pointer-events-none absolute -top-20 -left-20 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl"></div>    <div class="absolute -bottom-24 -right-24 w-[32rem] h-[32rem] bg-pink-500/10 rounded-full blur-3xl"></div>
+  </div>
+
+  <div class="w-full max-w-lg relative z-10">
+    <div class="rounded-3xl bg-white/5 backdrop-blur-md shadow-2xl shadow-black/40 p-8 space-y-8">
+
+      {% if not setup_complete %}
+        <!-- ─── Title & Intro ───────────────────────────────────────────────────── -->
+        <div class="space-y-2 text-center">
+          <h1 class="text-3xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
+            <span class="i-lucide-shield-check text-indigo-400"></span> Подключение 2‑факторной аутентификации
+          </h1>
+          <p class="text-sm text-zinc-400">Отсканируйте QR‑код через Google Authenticator, 1Password или другое приложение‑генератор кодов.</p>
+        </div>
+
+        <!-- ─── QR Code ─────────────────────────────────────────────────────────── -->
+        {% if qr_code %}
+        <div class="flex justify-center">
+          <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code" class="rounded-xl shadow-xl w-44 h-44 ring ring-indigo-500/20">
+        </div>
+        {% endif %}
+
+        <!-- ─── Verification Form ──────────────────────────────────────────────── -->
+        <form method="POST" class="space-y-6">
+          <div>
+            <label class="block mb-2 text-sm font-medium text-indigo-200">Код подтверждения</label>
+            <div class="grid grid-cols-6 gap-2">
+              {% for i in range(6) %}
+              <input type="text" maxlength="1" pattern="[0-9]*" inputmode="numeric"
+                     class="code-input w-full aspect-square rounded-lg bg-zinc-900/70 text-center text-2xl font-semibold text-indigo-100 tracking-wider border border-transparent focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 transition" />
+              {% endfor %}
+            </div>
+            <input type="hidden" name="code" id="totp-code">
+          </div>
+
+          <button type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-500 active:scale-[.98] transition">
+            <span class="i-lucide-check-circle"></span>
+            Активировать 2FA
+          </button>
+        </form>
+
+        <!-- ─── Backup Codes (first‑time only) ─────────────────────────────────── -->
+        {% if backup_codes %}
+        <div class="rounded-2xl bg-zinc-900/60 border border-zinc-700/60 p-6">
+          <h2 class="text-lg font-semibold text-white flex items-center gap-2 mb-2">
+            <span class="i-lucide-scroll"></span> Резервные коды
+          </h2>
+          <p class="text-xs text-zinc-400 mb-4">Сохраните их в безопасном месте. Каждый код можно использовать <strong>один раз</strong>.</p>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 font-mono text-sm">
+            {% for code in backup_codes %}
+              <div class="rounded-lg bg-zinc-800/60 px-3 py-2 text-center text-indigo-200 border border-zinc-700/60 select-all">{{ code }}</div>
+            {% endfor %}
+          </div>
+          <p class="text-[10px] text-center text-zinc-500 mt-4">🔒 Мы не покажем их снова.</p>
+        </div>
+        {% endif %}
+
+      {% else %}
+        <!-- ─── 2FA Already Enabled ───────────────────────────────────────────── -->
+        <div class="space-y-2 text-center">
+          <h1 class="text-3xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
+            <span class="i-lucide-shield-check"></span> 2‑факторная аутентификация включена
+          </h1>
+          <p class="text-sm text-zinc-400">Чтобы отключить защиту, введите текущий код из приложения или резервный код.</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('security.disable_2fa') }}" class="space-y-6">
+          <div>
+            <label class="block mb-2 text-sm font-medium text-indigo-200">Код из приложения</label>
+            <div class="grid grid-cols-6 gap-2">
+              {% for i in range(6) %}
+              <input type="text" maxlength="1" pattern="[0-9]*" inputmode="numeric"
+                     class="code-input w-full aspect-square rounded-lg bg-zinc-900/70 text-center text-2xl font-semibold text-indigo-100 tracking-wider border border-transparent focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 transition" />
+              {% endfor %}
+            </div>
+          </div>
+
+          <div>
+            <label class="block mb-2 text-sm font-medium text-indigo-200">Или резервный код</label>
+            <input type="text" name="backup_code" placeholder="например: a1b2c3d4"
+                   class="w-full rounded-lg bg-zinc-900/70 px-4 py-3 font-mono text-sm text-indigo-100 placeholder-zinc-500 border border-transparent focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 transition" />
+          </div>
+
+          <input type="hidden" name="totp_code" id="totp-code" />
+
+          <button type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 py-3 font-semibold text-white shadow-lg shadow-red-600/30 hover:bg-red-500 active:scale-[.98] transition">
+            <span class="i-lucide-shield-off"></span>
+            Отключить 2FA
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<!-- === Inline Script to Handle Code Inputs (unchanged) === -->
+<script>
+  const inputs = document.querySelectorAll('.code-input');
+
+  inputs.forEach((input, index) => {
+    input.addEventListener('input', () => {
+      if (input.value.length === 1 && index < inputs.length - 1) {
+        inputs[index + 1].focus();
+      }
+      collectCode();
+    });
+
+    input.addEventListener('paste', (e) => {
+      const paste = (e.clipboardData || window.clipboardData).getData('text');
+      if (/^\d{6}$/.test(paste)) {
+        e.preventDefault();
+        paste.split('').forEach((char, i) => {
+          if (inputs[i]) inputs[i].value = char;
+        });
+        collectCode();
+        inputs[5].focus();
+      }
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !input.value && index > 0) {
+        inputs[index - 1].focus();
+      }
+    });
+  });
+
+  function collectCode() {
+    const code = Array.from(inputs).map(i => i.value).join('');
+    document.getElementById('totp-code').value = code;
+  }
+</script>
+<!-- Крошечный override только для этой страницы -->
+<style>
+  /* убираем боковые паддинги, но оставляем на других страницах */
+  main { padding-left: 0 !important; padding-right: 0 !important; }
+  /* не даём появиться горизонтальной полосе прокрутки */
+  body { overflow-x: hidden; }
+</style>
+{% endblock %}

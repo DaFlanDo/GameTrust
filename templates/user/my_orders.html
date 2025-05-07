@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Мои заказы — GameMarket{% endblock %}
+{% block title %}Мои заказы — GameTrust{% endblock %}
 {% block content %}
 
 <div class="max-w-4xl mx-auto py-10">
@@ -15,18 +15,22 @@
               <div class="text-sm text-gray-400">Продавец: {{ order.seller_username or 'Неизвестно' }}</div>
               <div class="text-sm text-gray-400">Цена: {{ order.lot_price }} ₽</div>
               <div class="text-sm text-gray-400">Статус:
-                {% if order.status == 'paid' %}
-                  <span class="text-green-400">Оплачено</span>
-{% elif order.status == 'completed' %}
-                    <span class="text-blue-400">Подтверждено</span>
+              {% if order.status == 'paid' %}
+  <span class="text-green-400">Оплачено</span>
 
-                {% else %}
-                  <span class="text-yellow-400">В ожидании оплаты</span>
-                {% endif %}
+{% elif order.status == 'completed' %}
+  <span class="text-blue-400">Подтверждено</span>
+
+{% elif order.status == 'refunded' %}
+  <span class="text-red-400">Возврат средств</span>
+
+{% else %}
+  <span class="text-yellow-400">В ожидании оплаты</span>
+{% endif %}
               </div>
               <div class="text-xs text-gray-500 mt-1">Куплено: {{ order.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
             </div>
-            <a href="{{ url_for('purchase.order', purchase_id=order.id) }}"
+            <a href="{{ url_for('purchase.order', public_id=order.public_id) }}"
                class="text-indigo-400 hover:underline text-sm">Детали</a>
           </div>
         </div>

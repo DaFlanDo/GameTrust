@@ -1,20 +1,20 @@
 {% extends 'base.html' %}
-{% block title %}Вход — GameMarket{% endblock %}
+{% block title %}Регистрация — GameTrust{% endblock %}
 {% block content %}
 
 <div class="min-h-screen flex items-center justify-center bg-gradient-to-tr from-indigo-800 via-purple-700 to-pink-600 py-10">
 
   <div class="bg-gray-900 rounded-3xl shadow-2xl overflow-hidden w-full max-w-4xl flex flex-col md:flex-row animate-fadeIn">
 
-    <!-- Левая часть (можно заменить или убрать при желании) -->
+    <!-- Левая часть (опционально с изображением) -->
     <div class="md:w-1/2 hidden md:block">
-      <img src="{{ url_for('static', filename='img/login-art.png') }}" class="h-full w-full object-cover" alt="Login art">
+      <img src="{{ url_for('static', filename='img/register-art.png') }}" class="h-full w-full object-cover" alt="Register art">
     </div>
 
     <!-- Форма -->
     <div class="w-full md:w-1/2 p-8 md:p-12">
-      <h2 class="text-3xl font-bold text-indigo-400 text-center mb-2">С возвращением 👋</h2>
-      <p class="text-center text-gray-400 mb-6">Войдите в аккаунт, чтобы продолжить</p>
+      <h2 class="text-3xl font-bold text-indigo-400 text-center mb-2">Добро пожаловать!</h2>
+      <p class="text-center text-gray-400 mb-6">Создайте аккаунт, чтобы начать</p>
 
       <!-- Flash-сообщения -->
       {% with messages = get_flashed_messages(with_categories=true) %}
@@ -29,8 +29,17 @@
         {% endif %}
       {% endwith %}
 
-      <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-6">
+      <form method="POST" action="{{ url_for('auth.register') }}" class="space-y-6">
         {{ form.hidden_tag() }}
+
+        <!-- Имя пользователя -->
+        <div>
+          {{ form.username.label(class_='block text-sm font-medium text-gray-300 mb-1') }}
+          {{ form.username(class_='w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:outline-none') }}
+          {% if form.username.errors %}
+            <p class="text-sm text-red-500 mt-1">{{ form.username.errors[0] }}</p>
+          {% endif %}
+        </div>
 
         <!-- Email -->
         <div>
@@ -50,16 +59,25 @@
           {% endif %}
         </div>
 
+        <!-- Подтверждение пароля -->
+        <div>
+          {{ form.confirm_password.label(class_='block text-sm font-medium text-gray-300 mb-1') }}
+          {{ form.confirm_password(class_='w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:outline-none') }}
+          {% if form.confirm_password.errors %}
+            <p class="text-sm text-red-500 mt-1">{{ form.confirm_password.errors[0] }}</p>
+          {% endif %}
+        </div>
+
         <!-- Кнопка -->
         <button type="submit"
                 class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition">
-          🔐 {{ form.submit.label.text }}
+          ✨ {{ form.submit.label.text }}
         </button>
       </form>
 
       <p class="text-sm text-center text-gray-400 mt-6">
-        Нет аккаунта?
-        <a href="{{ url_for('auth.register') }}" class="text-indigo-400 hover:underline">Регистрация</a>
+        Уже есть аккаунт?
+        <a href="{{ url_for('auth.login') }}" class="text-indigo-400 hover:underline">Войти</a>
       </p>
     </div>
 
