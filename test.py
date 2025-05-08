@@ -1,11 +1,3 @@
-from werkzeug.security import generate_password_hash
-from datetime import datetime
-from app import app
-from extensions import db
-from models import Game, User, Lot
-
-
-
 import random
 from datetime import datetime
 from faker import Faker
@@ -55,7 +47,8 @@ def generate_fake_lot(user_id=1, game_id=1):
 
 
 with app.app_context():
-    fake_lots = [generate_fake_lot(user_id=3, game_id=random.randint(1, 5)) for _ in range(500)]
+    db.create_all()
+    fake_lots = [generate_fake_lot(user_id=1, game_id=random.randint(1, 4)) for _ in range(500)]
     db.session.add_all(fake_lots)
     db.session.commit()
     print("✅ Сгенерировано и добавлено 15 лотов.")

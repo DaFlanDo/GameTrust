@@ -1,4 +1,5 @@
 import json
+import pickle
 import uuid
 from datetime import datetime
 
@@ -8,24 +9,62 @@ from sqlalchemy import func
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm import joinedload
 import os
-from extensions import db, fernet, limiter
+from extensions import db, fernet, limiter, redis_client
 from models import Lot, Game, Review, User, Purchase
 
 lot_bp = Blueprint('lot', __name__)
 
+CACHE_TTL = 300               # 5 минут
+PAGE_KEY  = 'home:html'       # ключ под готовый HTML
+DATA_KEY  = 'home:data'
+
 # Главная страница
 @lot_bp.route('/')
 def home():
-    popular_lots = Lot.query.filter_by(is_active=True).order_by(Lot.price.desc()).limit(9).all()
-    recent_orders = Purchase.query.order_by(Purchase.created_at.desc()).limit(8).all()
-    top_games = Game.query.order_by(Game.name).limit(8).all()
-    gallery_images = [url_for('static', filename=f'img/demo/{n}.jpg') for n in range(1, 8)]
+    # 1) пробуем отдать уже‑сгенерированный HTML
+    cached_html = redis_client.get(PAGE_KEY)
+    if cached_html is not None:
+        print('🔄 Кеш сработал! HTML из Redis')
 
-    return render_template("index.html",
-                           lots=popular_lots,
-                           recent_orders=recent_orders,
-                           top_games=top_games,
-                           gallery_images=gallery_images)
+        return cached_html                 # ← сразу отдаём браузеру
+
+    # 2) если HTML-а нет, смотрим — может, выборки уже лежат?
+    cached_data = redis_client.get(DATA_KEY)
+    if cached_data is not None:
+        popular_lots, recent_orders, top_games, gallery_images = pickle.loads(cached_data)
+    else:
+        # делаем реальные запросы к БД
+        popular_lots = (Lot.query.filter_by(is_active=True)
+                              .order_by(Lot.price.desc())
+                              .limit(9).all())
+
+        recent_orders = (Purchase.query
+                               .order_by(Purchase.created_at.desc())
+                               .limit(8).all())
+
+        top_games = Game.query.order_by(Game.name).limit(8).all()
+        gallery_images = [
+            url_for('static', filename=f'img/demo/{n}.jpg')
+            for n in range(1, 8)
+        ]
+
+        # 2а) кладём выборки в Redis, чтобы не гонять БД при перерисовке
+        redis_client.setex(
+            DATA_KEY, CACHE_TTL,
+            pickle.dumps((popular_lots, recent_orders, top_games, gallery_images))
+        )
+
+    # 3) рендерим HTML, сохраняем и отдаём
+    html = render_template(
+        "index.html",
+        lots=popular_lots,
+        recent_orders=recent_orders,
+        top_games=top_games,
+        gallery_images=gallery_images
+    )
+
+    redis_client.setex(PAGE_KEY, CACHE_TTL, html)
+    return html
 
 # Подробная страница лота
 @lot_bp.route('/lot/<string:public_id>')
@@ -226,7 +265,7 @@ def lots(category, game_id):
 
 
     return render_template(
-        'auth/../templates/lots.html',
+        'lots/lots.html',
         lots=enriched_lots,
         category=category,
         game=game,

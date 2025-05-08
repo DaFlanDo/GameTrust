@@ -21,7 +21,7 @@ from flask import render_template
 from flask_login import login_required
 from . import admin_bp
 from models import User, Lot, Purchase, Review, Message, Transaction
-from extensions import db
+from extensions import db, delete_cache
 from sqlalchemy import func
 
 
@@ -211,6 +211,8 @@ def manage_games():
             game = Game(name=name, category=category)
             db.session.add(game)
             db.session.commit()
+            delete_cache(f"games:category:{category}", "games:list")
+
             flash('Игра добавлена', 'success')
             return redirect(url_for('admin.manage_games'))
 

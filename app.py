@@ -1,4 +1,3 @@
-import eventlet
 # 🧠 САМЫЙ ВЕРХ
 from apscheduler.schedulers.background import BackgroundScheduler
 

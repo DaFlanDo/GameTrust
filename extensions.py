@@ -1,14 +1,10 @@
 import os
-import logging
 import smtplib
 from email.header import Header
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formataddr
-
-from flask_mail import Message
 from flask_mail import Mail
-
 from cryptography.fernet import Fernet
 from flask import current_app, render_template
 from flask_migrate import Migrate
@@ -17,8 +13,8 @@ from flask_login import LoginManager
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import secrets
-
 from itsdangerous import URLSafeTimedSerializer
+from redis import Redis
 
 from config import Config
 
@@ -31,6 +27,25 @@ login_manager = LoginManager()
 limiter = Limiter(get_remote_address)
 fernet = Fernet(os.getenv("FERNET_SECRET_KEY"))
 migrate = Migrate()
+redis_client = Redis.from_url(os.environ.get("REDIS_URL"), decode_responses=False)
+
+def get_cache(key):
+    try:
+        return redis_client.get(key)
+    except Exception:
+        return None
+
+def set_cache(key, value, ttl=300):
+    try:
+        redis_client.setex(key, ttl, value)
+    except Exception:
+        pass
+
+def delete_cache(*keys):
+    try:
+        redis_client.delete(*keys)
+    except Exception:
+        pass
 
 # Отмена давних транзакций
 def cancel_expired_transactions(app,minutes=1):

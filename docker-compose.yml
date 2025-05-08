@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  web:
+    build: .
+    container_name: gametrust_web
+    ports:
+      - "5050:5000"
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - db
+    environment:
+      FLASK_APP: app.py
+      FLASK_DEBUG: 1
+      FLASK_ENV: development
+      DATABASE_URL: postgresql://daflando:secret@localhost:5432/gametrust
+      REDIS_URL: redis://redis:6379/0
+
+  redis:
+    image: redis:7
+    container_name: gametrust_redis
+    ports:
+      - "6379:6379"
+
+  db:
+    image: postgres:15
+    container_name: gametrust_db
+    restart: always
+    environment:
+      POSTGRES_DB: gametrust
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
