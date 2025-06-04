@@ -57,7 +57,7 @@
 ## 🧪 Установка
 
 ```bash
-git clone https://github.com/yourusername/gametrust.git
+git clone https://github.com/daflando/gametrust.git
 cd gametrust
 python3 -m venv .venv
 source .venv/bin/activate
