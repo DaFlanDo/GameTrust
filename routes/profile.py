@@ -31,9 +31,16 @@ def user_profile(user_id):
         avatar_file = request.files.get('avatar')
         if avatar_file and avatar_file.filename != '':
             filename = secure_filename(avatar_file.filename)
-            avatar_path = os.path.join(current_app.root_path, 'static/uploads/avatars', filename)
+            # Добавим таймштамп, чтобы избежать дублей и проблем с кэшем
+            unique_filename = f"{int(datetime.utcnow().timestamp())}_{filename}"
+            upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'avatars')
+            
+            # 🛡️ Важно: создаем папку, если её нет
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            avatar_path = os.path.join(upload_dir, unique_filename)
             avatar_file.save(avatar_path)
-            user.avatar = filename
+            user.avatar = unique_filename
 
         db.session.commit()
         return redirect(url_for('profile.user_profile', user_id=user.id))

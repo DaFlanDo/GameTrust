@@ -25,9 +25,9 @@ def get_serializer():
 db = SQLAlchemy()
 login_manager = LoginManager()
 limiter = Limiter(get_remote_address)
-fernet = Fernet(os.getenv("FERNET_SECRET_KEY"))
+fernet = Fernet(Config.FERNET_SECRET_KEY)
 migrate = Migrate()
-redis_client = Redis.from_url(os.environ.get("REDIS_URL"), decode_responses=False)
+redis_client = Redis.from_url(Config.REDIS_URL, decode_responses=False)
 
 def get_cache(key):
     try:
@@ -73,7 +73,7 @@ def generate_short_id(length=6):
 
 SMTP_SERVER = Config.SMTP_SERVER
 SMTP_PORT = Config.SMTP_PORT
-SMTP_USER = Config.SMPT_USER
+SMTP_USER = Config.SMTP_USER
 SMTP_PASSWORD = Config.SMTP_PASSWORD
 
 

@@ -6,6 +6,18 @@ from extensions import db, get_cache, set_cache
 
 game_bp = Blueprint('game', __name__)
 
+@game_bp.route('/all-games')
+def all_games():
+    # Получаем все уникальные игры
+    games = Game.query.all()
+    # Группируем их по имени, чтобы избежать дублей (т.к. старая структура могла иметь дубли по категориям)
+    unique_games = {}
+    for g in games:
+        if g.name not in unique_games:
+            unique_games[g.name] = g
+    
+    return render_template('lots/all_games.html', games=unique_games.values())
+
 @game_bp.route('/category/<string:category>')
 def show_games(category):
     cache_key = f"games:category:{category}"

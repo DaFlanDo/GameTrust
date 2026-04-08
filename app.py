@@ -21,10 +21,23 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Инициализация расширений
 db.init_app(app)
+migrate.init_app(app, db)  # ✨ Initialize migrations
 login_manager.init_app(app)
 login_manager.login_view = 'auth.login'
 fernet = Fernet(app.config['FERNET_SECRET_KEY'])
 mail.init_app(app)
+
+# 🔥 Create tables automatically if they don't exist
+with app.app_context():
+    db.create_all()
+    # Очистка кэша при старте (если в debug), чтобы не мучаться с F5
+    if app.debug:
+        from extensions import redis_client
+        try:
+            redis_client.delete('home:html', 'home:data')
+            print("🧹 Cache cleared on startup")
+        except:
+            print("⚠️ Redis not available for cache clearing")
 # Загрузка текущего пользователя
 @login_manager.user_loader
 def load_user(user_id):
@@ -56,6 +69,10 @@ def check_if_blocked():
 def page_not_found(e):
     return render_template('errors/404.html'), 404
 
+@app.errorhandler(403)
+def forbidden(e):
+    return render_template("errors/403.html"), 403
+
 @app.errorhandler(429)
 def ratelimit_handler(e):
     return render_template("errors/429.html"), 429
@@ -69,4 +86,4 @@ def test_error():
 #scheduler.start()
 # Запуск через socketio
 if __name__ == '__main__':
-    app.run( debug=True,reload=True, port=5000)
+    app.run(debug=True, use_reloader=True, port=5000)

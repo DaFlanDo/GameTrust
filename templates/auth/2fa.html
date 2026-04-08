@@ -1,110 +1,107 @@
 {% extends 'base.html' %}
-{% block title %}Двухфакторная аутентификация — GameTrust{% endblock %}
+{% block title %}Безопасность — GameTrust{% endblock %}
 {% block content %}
 
-<!-- === 2FA SETUP / STATUS === -->
- <section class="relative min-h-[calc(100vh-6rem)] w-full flex items-center justify-center bg-gradient-to-tr from-[#0e0e16] via-[#15162a] to-[#0e0e16] px-4 py-10 overflow-hidden">  <div class="absolute -top-20 -left-20 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl"></div>
-  <div class="absolute -bottom-24 -right-24 w-[32rem] h-[32rem] bg-pink-500/10 rounded-full blur-3xl"></div>
+<div class="min-h-[80vh] flex items-center justify-center py-12 px-4 relative">
+  <div class="w-full max-w-2xl glass rounded-[3rem] shadow-2xl p-8 md:p-14 border border-white/50 relative overflow-hidden">
+    
+    <!-- Decorative Orbs -->
+    <div class="absolute -top-10 -right-10 w-48 h-48 bg-blue-100 rounded-full blur-3xl opacity-50"></div>
+    <div class="absolute -bottom-10 -left-10 w-48 h-48 bg-blue-50 rounded-full blur-3xl opacity-50"></div>
 
-<div class="pointer-events-none absolute -top-20 -left-20 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl"></div>    <div class="absolute -bottom-24 -right-24 w-[32rem] h-[32rem] bg-pink-500/10 rounded-full blur-3xl"></div>
-  </div>
-
-  <div class="w-full max-w-lg relative z-10">
-    <div class="rounded-3xl bg-white/5 backdrop-blur-md shadow-2xl shadow-black/40 p-8 space-y-8">
-
+    <div class="relative z-10 text-center">
       {% if not setup_complete %}
-        <!-- ─── Title & Intro ───────────────────────────────────────────────────── -->
-        <div class="space-y-2 text-center">
-          <h1 class="text-3xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
-            <span class="i-lucide-shield-check text-indigo-400"></span> Подключение 2‑факторной аутентификации
+        <div class="mb-10">
+          <h1 class="text-4xl font-black text-blue-900 mb-4 tracking-tighter flex items-center justify-center gap-3">
+             🔐 Защита 2FA
           </h1>
-          <p class="text-sm text-zinc-400">Отсканируйте QR‑код через Google Authenticator, 1Password или другое приложение‑генератор кодов.</p>
+          <p class="text-slate-500 font-medium">Отсканируйте код в приложении (Google Authenticator или др.)</p>
         </div>
 
-        <!-- ─── QR Code ─────────────────────────────────────────────────────────── -->
         {% if qr_code %}
-        <div class="flex justify-center">
-          <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code" class="rounded-xl shadow-xl w-44 h-44 ring ring-indigo-500/20">
+        <div class="flex justify-center mb-10">
+          <div class="p-4 bg-white rounded-[2.5rem] shadow-xl shadow-blue-100 border border-blue-50 relative group">
+            <div class="absolute -inset-2 bg-blue-100 rounded-[3rem] blur-xl opacity-0 group-hover:opacity-50 transition-opacity"></div>
+            <img src="data:image/png;base64,{{ qr_code }}" 
+                 alt="QR Code" 
+                 class="relative z-10 w-48 h-48 rounded-[1.5rem]">
+          </div>
         </div>
         {% endif %}
 
-        <!-- ─── Verification Form ──────────────────────────────────────────────── -->
-        <form method="POST" class="space-y-6">
-          <div>
-            <label class="block mb-2 text-sm font-medium text-indigo-200">Код подтверждения</label>
-            <div class="grid grid-cols-6 gap-2">
+        <form method="POST" class="space-y-8 max-w-sm mx-auto">
+          <div class="space-y-4">
+            <label class="block text-xs font-black text-slate-400 uppercase tracking-widest">Код подтверждения</label>
+            <div class="flex justify-between gap-2">
               {% for i in range(6) %}
               <input type="text" maxlength="1" pattern="[0-9]*" inputmode="numeric"
-                     class="code-input w-full aspect-square rounded-lg bg-zinc-900/70 text-center text-2xl font-semibold text-indigo-100 tracking-wider border border-transparent focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 transition" />
+                     class="code-input w-12 h-14 rounded-2xl bg-white border border-blue-100 text-blue-600 text-center text-2xl font-black shadow-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 focus:outline-none transition-all">
               {% endfor %}
             </div>
             <input type="hidden" name="code" id="totp-code">
           </div>
 
-          <button type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-500 active:scale-[.98] transition">
-            <span class="i-lucide-check-circle"></span>
-            Активировать 2FA
+          <button type="submit" class="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-2xl shadow-xl shadow-blue-600/20 transition-all flex items-center justify-center gap-2">
+            ✅ Активировать защиту
           </button>
         </form>
 
-        <!-- ─── Backup Codes (first‑time only) ─────────────────────────────────── -->
         {% if backup_codes %}
-        <div class="rounded-2xl bg-zinc-900/60 border border-zinc-700/60 p-6">
-          <h2 class="text-lg font-semibold text-white flex items-center gap-2 mb-2">
-            <span class="i-lucide-scroll"></span> Резервные коды
-          </h2>
-          <p class="text-xs text-zinc-400 mb-4">Сохраните их в безопасном месте. Каждый код можно использовать <strong>один раз</strong>.</p>
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 font-mono text-sm">
+        <div class="mt-12 p-8 bg-blue-50/50 rounded-[2.5rem] border border-blue-100/50">
+          <h2 class="text-sm font-black text-blue-900 uppercase tracking-wider mb-4">🏠 Резервные коды</h2>
+          <p class="text-xs text-slate-500 mb-6 font-medium">Сохраните их! Они помогут войти, если вы потеряете доступ к телефону.</p>
+          <div class="grid grid-cols-2 gap-3">
             {% for code in backup_codes %}
-              <div class="rounded-lg bg-zinc-800/60 px-3 py-2 text-center text-indigo-200 border border-zinc-700/60 select-all">{{ code }}</div>
+              <div class="bg-white px-4 py-2 rounded-xl text-center text-blue-600 font-mono text-sm border border-blue-100 shadow-sm select-all">
+                {{ code }}
+              </div>
             {% endfor %}
           </div>
-          <p class="text-[10px] text-center text-zinc-500 mt-4">🔒 Мы не покажем их снова.</p>
+          <p class="text-[10px] text-slate-400 mt-6 font-black uppercase">🔒 Покажем только один раз</p>
         </div>
         {% endif %}
 
       {% else %}
-        <!-- ─── 2FA Already Enabled ───────────────────────────────────────────── -->
-        <div class="space-y-2 text-center">
-          <h1 class="text-3xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
-            <span class="i-lucide-shield-check"></span> 2‑факторная аутентификация включена
-          </h1>
-          <p class="text-sm text-zinc-400">Чтобы отключить защиту, введите текущий код из приложения или резервный код.</p>
+        <div class="mb-10">
+          <div class="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
+             <span class="text-4xl">🛡️</span>
+          </div>
+          <h1 class="text-4xl font-black text-blue-900 mb-4 tracking-tighter">Защита активна</h1>
+          <p class="text-slate-500 font-medium">Ваш аккаунт под надежной двухфакторной защитой.</p>
         </div>
 
-        <form method="POST" action="{{ url_for('security.disable_2fa') }}" class="space-y-6">
-          <div>
-            <label class="block mb-2 text-sm font-medium text-indigo-200">Код из приложения</label>
-            <div class="grid grid-cols-6 gap-2">
+        <form method="POST" action="{{ url_for('security.disable_2fa') }}" class="space-y-8 max-w-sm mx-auto mt-12 pt-12 border-t border-slate-100">
+          <div class="space-y-4">
+            <label class="block text-xs font-black text-slate-400 uppercase tracking-widest">Текущий код</label>
+            <div class="flex justify-between gap-2">
               {% for i in range(6) %}
               <input type="text" maxlength="1" pattern="[0-9]*" inputmode="numeric"
-                     class="code-input w-full aspect-square rounded-lg bg-zinc-900/70 text-center text-2xl font-semibold text-indigo-100 tracking-wider border border-transparent focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 transition" />
+                     class="code-input w-12 h-14 rounded-2xl bg-white border border-blue-100 text-blue-600 text-center text-2xl font-black shadow-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 focus:outline-none transition-all">
               {% endfor %}
             </div>
           </div>
 
-          <div>
-            <label class="block mb-2 text-sm font-medium text-indigo-200">Или резервный код</label>
-            <input type="text" name="backup_code" placeholder="например: a1b2c3d4"
-                   class="w-full rounded-lg bg-zinc-900/70 px-4 py-3 font-mono text-sm text-indigo-100 placeholder-zinc-500 border border-transparent focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 transition" />
+          <div class="relative py-2">
+             <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-50"></div></div>
+             <div class="relative flex justify-center text-[10px] uppercase font-black text-slate-300"><span class="bg-white/10 glass px-2">или резервный</span></div>
           </div>
+
+          <input type="text" name="backup_code" placeholder="a1b2c3d4"
+                 class="w-full rounded-2xl bg-white border border-blue-50 px-4 py-4 font-mono text-sm text-center text-blue-900 focus:outline-none focus:border-blue-400 transition-colors shadow-sm">
 
           <input type="hidden" name="totp_code" id="totp-code" />
 
-          <button type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 py-3 font-semibold text-white shadow-lg shadow-red-600/30 hover:bg-red-500 active:scale-[.98] transition">
-            <span class="i-lucide-shield-off"></span>
-            Отключить 2FA
+          <button type="submit" class="w-full py-5 bg-red-50 text-red-600 hover:bg-red-100 font-black rounded-2xl border border-red-100 transition-all">
+             🔒 Отключить защиту
           </button>
         </form>
       {% endif %}
     </div>
   </div>
-</section>
+</div>
 
-<!-- === Inline Script to Handle Code Inputs (unchanged) === -->
 <script>
   const inputs = document.querySelectorAll('.code-input');
-
   inputs.forEach((input, index) => {
     input.addEventListener('input', () => {
       if (input.value.length === 1 && index < inputs.length - 1) {
@@ -112,7 +109,6 @@
       }
       collectCode();
     });
-
     input.addEventListener('paste', (e) => {
       const paste = (e.clipboardData || window.clipboardData).getData('text');
       if (/^\d{6}$/.test(paste)) {
@@ -124,7 +120,6 @@
         inputs[5].focus();
       }
     });
-
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Backspace' && !input.value && index > 0) {
         inputs[index - 1].focus();
@@ -137,11 +132,5 @@
     document.getElementById('totp-code').value = code;
   }
 </script>
-<!-- Крошечный override только для этой страницы -->
-<style>
-  /* убираем боковые паддинги, но оставляем на других страницах */
-  main { padding-left: 0 !important; padding-right: 0 !important; }
-  /* не даём появиться горизонтальной полосе прокрутки */
-  body { overflow-x: hidden; }
-</style>
+
 {% endblock %}

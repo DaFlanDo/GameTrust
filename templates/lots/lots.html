@@ -1,157 +1,212 @@
 {% extends 'base.html' %}
-{% block title %}Лоты {{ game.name }} — GameTrust{% endblock %}
+{% block title %}Каталог {{ game.name }} — GameTrust{% endblock %}
 {% block content %}
 
-<!-- ─────────── Заголовок с плавным градиентом ─────────── -->
-<section class="relative pt-8 sm:pt-12 text-center bg-gradient-to-b from-[#1e1b4b] via-[#1c1a40] to-transparent rounded-b-3xl shadow-inner overflow-hidden -mt-6 sm:-mt-8">  <div class="-mt-10 sm:-mt-14 pt-16 sm:pt-24 pb-10 px-4">
-    <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 flex items-center justify-center gap-3">
-      <span class="text-4xl">🔑</span>
-      {{ game.category }} • {{ game.name }}
-    </h1>
-    <p class="text-gray-300 mt-4 text-base sm:text-lg">
-      🔍 Быстрый поиск и фильтры — находите лучший лот за секунды
-    </p>
+<!-- ━━━━━━━━━━━━━━━━━━ COMPACT HERO ━━━━━━━━━━━━━━━━━━ -->
+<section class="max-w-7xl mx-auto px-4 pt-8 pb-12">
+  <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div class="space-y-2">
+      <nav class="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
+         <a href="/" class="hover:text-blue-600 transition-colors">Маркетплейс</a>
+         <span class="opacity-30">/</span>
+         <span class="text-blue-500">{{ game.category }}</span>
+      </nav>
+      <h1 class="text-4xl md:text-5xl font-black text-blue-900 tracking-tighter">
+        {{ game.name }}
+      </h1>
+      <p class="text-slate-500 font-medium max-w-xl">
+        Найдено {{ lots|length }} предложений. Все сделки защищены системой гаранта.
+      </p>
+    </div>
+    
+    <!-- Quick Search / Filter Toggle Mobile -->
+    <div class="lg:hidden w-full">
+       <button @click="$dispatch('toggle-sidebar')" class="w-full py-4 bg-blue-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 shadow-xl shadow-blue-600/20">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+          Фильтры
+       </button>
+    </div>
   </div>
 </section>
-<!-- ───── Современные фильтры ───── -->
-<div class="max-w-6xl mx-auto px-4 mb-10">
-  <div class="flex flex-wrap justify-center gap-3 text-sm">
 
-    <!-- Платформы -->
-    {% for p in ['Все', 'PC', 'PlayStation', 'Xbox'] %}
-      <a href="?platform={{ p if p != 'Все' else '' }}{% if sort %}&sort={{ sort }}{% endif %}{% if auto %}&auto=1{% endif %}"
-         class="px-4 py-1.5 rounded-full border transition shadow-sm
-                {{ 'bg-indigo-600 text-white border-indigo-600' if platform == p or (p == 'Все' and not platform) else 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white' }}">
-        {{ p }}
+<div class="max-w-7xl mx-auto px-4 pb-32" x-data="{ sidebar: false }" @toggle-sidebar.window="sidebar = !sidebar">
+  
+  <!-- ━━━━━━━━━━━━━━━━━━ CATEGORY TABS (GAME-FIRST HUB) ━━━━━━━━━━━━━━━━━━ -->
+  <div class="mb-12">
+    <div class="flex flex-wrap items-center gap-2 p-1.5 bg-slate-50/50 rounded-[2.5rem] border border-slate-100 shadow-inner w-fit">
+      <a href="{{ url_for('lot.lots', category='all', game_id=game.id) }}" 
+         class="px-8 py-4 rounded-full text-xs font-black uppercase tracking-widest transition-all
+                {{ 'bg-blue-600 text-white shadow-xl shadow-blue-600/30' if category == 'all' else 'text-slate-400 hover:text-blue-600' }}">
+        Все товары
       </a>
-    {% endfor %}
-
-    <!-- Автодоставка -->
-    <a href="?auto={% if not auto %}1{% endif %}{% if platform %}&platform={{ platform }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}"
-       class="px-4 py-1.5 rounded-full border transition shadow-sm
-              {{ 'bg-indigo-600 text-white border-indigo-600' if auto else 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white' }}">
-      ⚡ Автодоставка
-    </a>
-
-    <!-- Сортировка -->
-    <div class="relative">
-      <button id="sortToggle" class="px-4 py-1.5 rounded-full bg-gray-800 border border-gray-700 text-gray-300 hover:text-white hover:bg-gray-700 transition shadow-sm flex items-center gap-2">
-        {% if sort == 'price_asc' %}⬆️ Цена{% elif sort == 'price_desc' %}⬇️ Цена{% elif sort == 'new' %}🆕 Новые{% else %}⚙️ Сортировка{% endif %}
-        <svg class="w-4 h-4 text-gray-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-        </svg>
-      </button>
-
-      <div id="sortDropdown" class="hidden absolute left-0 mt-2 w-48 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-50 transition-all duration-200">
-        {% macro sort_item(label, value, icon) -%}
-          <a href="?sort={{ value }}{% if platform %}&platform={{ platform }}{% endif %}{% if auto %}&auto=1{% endif %}"
-             class="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded
-                    {% if sort == value %}bg-gray-700 text-indigo-300 font-semibold{% endif %}">
-            <span>{{ icon }}</span> {{ label }}
-          </a>
-        {%- endmacro %}
-        {{ sort_item('По возрастанию цены', 'price_asc', '⬆️') }}
-        {{ sort_item('По убыванию цены', 'price_desc', '⬇️') }}
-        {{ sort_item('Сначала новые', 'new', '🆕') }}
-      </div>
+      {% for cat_id, cat_name in all_categories %}
+        <a href="{{ url_for('lot.lots', category=cat_id, game_id=game.id) }}" 
+           class="px-8 py-4 rounded-full text-xs font-black uppercase tracking-widest transition-all
+                  {{ 'bg-blue-600 text-white shadow-xl shadow-blue-600/30' if category == cat_id else 'text-slate-400 hover:text-blue-600' }}">
+          {{ cat_name }}
+        </a>
+      {% endfor %}
     </div>
-
   </div>
-</div>
 
-<script>
-  const sortButton = document.getElementById("sortToggle");
-  const sortDropdown = document.getElementById("sortDropdown");
+  <div class="flex flex-col lg:flex-row gap-10">
+    
+    <!-- ━━━━━━━━━━━━━━━━━━ SIDEBAR FILTERS (UX UPGRADE) ━━━━━━━━━━━━━━━━━━ -->
+    <aside class="w-full lg:w-72 lg:shrink-0 space-y-8" 
+           :class="sidebar ? 'fixed inset-0 z-[110] bg-white p-8 overflow-y-auto block' : 'hidden lg:block'">
+      
+      <!-- Mobile Close -->
+      <div class="lg:hidden flex justify-between items-center mb-8">
+         <span class="text-xl font-black text-blue-900">Фильтры</span>
+         <button @click="sidebar = false" class="text-slate-400">✖ ️Закрыть</button>
+      </div>
 
-  sortButton.addEventListener("click", function (e) {
-    e.stopPropagation();
-    sortDropdown.classList.toggle("hidden");
-  });
+      <!-- Section: Платформы -->
+      <div class="space-y-4">
+        <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Платформа</h4>
+        <div class="space-y-2">
+          {% for p, icon in [('PC', '💻'), ('PlayStation', '🎮'), ('Xbox', '🔋'), ('Nintendo', '🕹️')] %}
+            <a href="?platform={{ p }}{% if sort %}&sort={{ sort }}{% endif %}{% if auto %}&auto=1{% endif %}" 
+               class="flex items-center justify-between px-5 py-3.5 rounded-2xl transition-all font-bold text-sm
+                      {{ 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 px-6 scale-105' if platform == p else 'bg-white border border-blue-50 text-slate-600 hover:border-blue-200' }}">
+               <span class="flex items-center gap-3"><span>{{ icon }}</span> {{ p }}</span>
+               {% if platform == p %} <span class="text-xs">✓</span> {% endif %}
+            </a>
+          {% endfor %}
+          <a href="?platform={% if sort %}&sort={{ sort }}{% endif %}{% if auto %}&auto=1{% endif %}" 
+             class="flex items-center gap-3 px-5 py-3 text-xs font-black text-slate-400 hover:text-blue-600 transition-colors">
+             Сбросить платформу
+          </a>
+        </div>
+      </div>
 
-  document.addEventListener("click", function (e) {
-    if (!sortDropdown.contains(e.target) && !sortButton.contains(e.target)) {
-      sortDropdown.classList.add("hidden");
-    }
-  });
-</script>
-<!-- ─────────── Десктопная таблица ─────────── -->
-<div class="hidden md:block max-w-6xl mx-auto px-4">
-  <div class="overflow-hidden rounded-3xl shadow-2xl ring-1 ring-indigo-700/20">
-    <table class="w-full text-sm text-white bg-gray-800/60 backdrop-blur">
-      <thead class="bg-gradient-to-r from-gray-800 to-gray-700/80 text-gray-300 uppercase text-[11px]">
-        <tr>
-          <th class="px-6 py-3 text-left rounded-tl-3xl">📝 Описание</th>
-          <th class="px-6 py-3 text-left">👤 Продавец</th>
-          <th class="px-6 py-3 text-right">💰 Цена</th>
-          <th class="px-6 py-3 text-right rounded-tr-3xl"> </th>
-        </tr>
-      </thead>
-      <tbody>
+      <!-- Section: Статус -->
+      <div class="space-y-4">
+        <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Доставка</h4>
+        <a href="?auto={% if not auto %}1{% endif %}{% if platform %}&platform={{ platform }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
+           class="flex items-center justify-between px-5 py-4 rounded-2xl transition-all font-bold text-sm border-2
+                  {{ 'bg-green-50 border-green-200 text-green-700 shadow-sm' if auto else 'bg-white border-blue-50 text-slate-600 hover:bg-green-50/30' }}">
+           <span class="flex items-center gap-3">⚡ Мгновенная</span>
+           <div class="w-5 h-5 rounded-md border-2 {{ 'bg-green-600 border-green-600 flex items-center justify-center text-white text-[10px]' if auto else 'border-slate-200' }}">
+             {% if auto %} ✓ {% endif %}
+           </div>
+        </a>
+      </div>
+    </aside>
+
+    <!-- ━━━━━━━━━━━━━━━━━━ MAIN LISTING ━━━━━━━━━━━━━━━━━━ -->
+    <main class="flex-1 space-y-8">
+      
+      <!-- Top Sorting Bar (UX Optimized) -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass border border-white rounded-[2.5rem] p-2 pr-6 shadow-sm">
+         <div class="flex flex-wrap items-center gap-1">
+            {% macro sort_pill(label, val, icon) %}
+               <a href="?sort={{ val }}{% if platform %}&platform={{ platform }}{% endif %}{% if auto %}&auto=1{% endif %}" 
+                  class="px-6 py-3 rounded-[2rem] text-xs font-black transition-all flex items-center gap-2
+                         {{ 'bg-blue-600 text-white shadow-xl shadow-blue-600/30' if (sort == val or (val == '' and not sort)) else 'text-slate-400 hover:text-blue-600 hover:bg-blue-50' }}">
+                  <span>{{ icon }}</span> {{ label }}
+               </a>
+            {% endmacro %}
+            {{ sort_pill('По умолчанию', '', '⚙️') }}
+            {{ sort_pill('Дешевле', 'price_asc', '⬇️') }}
+            {{ sort_pill('Дороже', 'price_desc', '⬆️') }}
+            {{ sort_pill('Новинки', 'new', '🆕') }}
+         </div>
+         <div class="hidden sm:block text-[10px] font-black text-slate-300 uppercase tracking-widest pl-4">
+            {{ lots|length }} предложений
+         </div>
+      </div>
+
+      {% if not lots %}
+        <div class="py-20 text-center glass rounded-[3rem] border border-blue-50">
+           <div class="text-6xl mb-6">🏜️</div>
+           <h3 class="text-2xl font-black text-blue-900 mb-2">Пустовато...</h3>
+           <p class="text-slate-400 font-medium">К сожалению, по этим фильтрам лотов нет.</p>
+           <a href="{{ request.path }}" class="inline-block mt-6 px-8 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20">Сбросить всё</a>
+        </div>
+      {% endif %}
+
+      <div class="space-y-4">
         {% for lot in lots %}
-        <tr class="hover:bg-gray-700/70 transition cursor-pointer"
-            onclick="window.location.href='{{ url_for('lot.lot', public_id=lot.public_id) }}'">
-
-          <!-- Описание -->
-          <td class="px-6 py-4 align-top">
-            <div class="font-semibold text-indigo-200">{{ lot.title }}</div>
-            {% if lot.description %}
-              <p class="text-xs text-gray-400 mt-1">{{ lot.description }}</p>
-            {% endif %}
-            <div class="flex gap-2 text-[11px] text-gray-500 mt-2">
-              <span class="px-2 py-0.5 bg-gray-700/60 rounded">{{ lot.platform }}</span>
-              {% if lot.autodelivery %}
-                <span class="px-2 py-0.5 bg-green-700/50 text-green-300 rounded">⚡ Авто</span>
-              {% endif %}
+        <!-- Premium List Item (Card Style) -->
+        <a href="{{ url_for('lot.lot', public_id=lot.public_id) }}" 
+           class="group block glass p-1 rounded-[2.5rem] border border-white hover:border-blue-100 shadow-sm hover:shadow-2xl hover:shadow-blue-200/40 transition-all duration-500 relative overflow-hidden">
+          
+          <div class="bg-white/80 rounded-[2.4rem] p-6 sm:p-8 flex flex-col md:flex-row md:items-center gap-8">
+            
+            <!-- Category & Badge -->
+            <div class="absolute top-6 right-8 md:static shrink-0">
+               <div class="flex flex-col items-end md:items-center gap-2">
+                 <div class="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-2xl group-hover:bg-blue-600 group-hover:text-white transition-all duration-500 shadow-sm">
+                    {% if lot.platform == 'PC' %}💻{% elif lot.platform == 'PlayStation' %}🎮{% elif lot.platform == 'Xbox' %}🔋{% else %}🕹️{% endif %}
+                 </div>
+                 <span class="text-[9px] font-black text-slate-300 uppercase tracking-widest">{{ lot.platform }}</span>
+               </div>
             </div>
-          </td>
 
-          <!-- Продавец -->
-          <td class="px-6 py-4 align-top">
-            <div class="flex items-center gap-3">
-              <img src="{{ lot.avatar_url }}" alt class="w-9 h-9 rounded-full object-cover ring-1 ring-gray-600">
-              <div>
-                <div class="text-sm text-gray-200 font-medium">{{ lot.seller }}</div>
-                <div class="flex items-center text-[11px] gap-0.5">
-                  {% for i in range(lot.rating_int) %}
-                    <span class="text-yellow-400">★</span>
-                  {% endfor %}
-                  {% for i in range(5 - lot.rating_int) %}
-                    <span class="text-gray-500">★</span>
-                  {% endfor %}
-                  <span class="ml-1 text-gray-500">({{ lot.rating }})</span>
-                </div>
-                <p class="text-[11px] text-gray-500 mt-0.5">На сайте: {{ lot.on_site }}</p>
-              </div>
+            <!-- Content -->
+            <div class="flex-1 min-w-0">
+               <div class="flex items-center gap-3 mb-2">
+                  <span class="px-2.5 py-0.5 rounded-lg bg-blue-50 text-[10px] font-black text-blue-600 uppercase border border-blue-100">
+                    {{ game.category }}
+                  </span>
+                  {% if lot.autodelivery %}
+                    <span class="px-2.5 py-0.5 rounded-lg bg-green-50 text-[10px] font-black text-green-600 uppercase border border-green-100 flex items-center gap-1">
+                      <span class="animate-pulse">⚡</span> Автовыдача
+                    </span>
+                  {% endif %}
+               </div>
+               <h3 class="text-xl font-black text-blue-900 group-hover:text-blue-600 transition-colors mb-2 truncate">
+                 {{ lot.title }}
+               </h3>
+               <p class="text-sm text-slate-500 font-medium line-clamp-2 leading-relaxed">
+                 {{ lot.description or 'Продавец не указал описание, но товар точно достоин вашего внимания!' }}
+               </p>
             </div>
-          </td>
 
-          <!-- Цена -->
-          <td class="px-6 py-4 align-top text-right whitespace-nowrap">
-            <span class="text-lg font-bold text-green-400">{{ lot.price }} ₽</span>
-          </td>
+            <!-- Seller Info -->
+            <div class="shrink-0 w-full md:w-48 px-6 py-4 md:py-0 md:border-x border-slate-100 border-dashed">
+               <div class="flex items-center gap-4">
+                  <div class="w-10 h-10 rounded-full border-2 border-white shadow-sm overflow-hidden bg-slate-200">
+                     <img src="{{ lot.avatar_url }}" class="w-full h-full object-cover">
+                  </div>
+                  <div class="flex flex-col">
+                     <span class="text-sm font-bold text-slate-800">{{ lot.seller }}</span>
+                     <div class="flex items-center gap-1 text-[10px] text-yellow-500 font-black">
+                        ⭐ {{ lot.rating }}
+                        <span class="text-slate-300 font-medium ml-1">({{ lot.on_site }})</span>
+                     </div>
+                  </div>
+               </div>
+            </div>
 
-          <!-- Кнопка -->
-          <td class="px-6 py-4 align-top text-right">
-            <a href="{{ url_for('lot.lot', public_id=lot.public_id) }}"
-               class="inline-block px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 rounded-full text-xs shadow
-                      transition" onclick="event.stopPropagation()">Купить</a>
-          </td>
-        </tr>
+            <!-- Pricing & Action -->
+            <div class="shrink-0 flex items-center justify-between md:flex-col md:items-end md:justify-center gap-2">
+               <div class="flex flex-col md:items-end">
+                  <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Лучшая цена</span>
+                  <span class="text-3xl font-black text-blue-600 tracking-tighter">{{ lot.price }} ₽</span>
+               </div>
+               <div class="px-8 py-3 bg-blue-600 group-hover:bg-blue-700 text-white rounded-2xl font-black text-xs shadow-xl shadow-blue-600/20 transition-all active:scale-95">
+                  Купить
+               </div>
+            </div>
+          </div>
+        </a>
         {% endfor %}
-      </tbody>
-    </table>
+      </div>
+
+      <!-- Load More -->
+      {% if has_more %}
+      <div class="pt-12 text-center">
+        <button id="load-more-btn" 
+                class="group relative px-12 py-5 bg-white rounded-[2rem] text-blue-600 border border-blue-100 font-black text-sm shadow-xl shadow-blue-900/5 hover:bg-blue-600 hover:text-white transition-all duration-300">
+           ⬇️ Исследовать больше лотов
+        </button>
+      </div>
+      {% endif %}
+    </main>
   </div>
 </div>
-
-<!-- Показать ещё -->
-{% if has_more %}
-<div class="text-center mt-10">
-  <button id="load-more-btn"
-          class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-full shadow transition">
-    ⏬ Показать ещё
-  </button>
-</div>
-{% endif %}
 
 <script>
   let currentPage = {{ page|default(1) }};
@@ -175,15 +230,16 @@
         const temp = document.createElement("div");
         temp.innerHTML = html;
 
-        const newLots = temp.querySelectorAll("tbody tr");
-        const lotTable = document.querySelector("tbody");
-        newLots.forEach(row => lotTable.appendChild(row));
+        // Append new lots to the list
+        const newLots = temp.querySelectorAll(".space-y-4 > a");
+        const listContainer = document.querySelector(".space-y-4");
+        newLots.forEach(lot => listContainer.appendChild(lot));
 
         if (!temp.querySelector("#load-more-btn")) {
           loadMoreBtn.remove();
         } else {
           loadMoreBtn.disabled = false;
-          loadMoreBtn.textContent = "⏬ Показать ещё";
+          loadMoreBtn.textContent = "⬇️ Исследовать больше лотов";
         }
       } else {
         loadMoreBtn.textContent = "Ошибка загрузки";
@@ -192,54 +248,4 @@
   }
 </script>
 
-<!-- ─────────── Мобильные карточки ─────────── -->
-<div class="md:hidden space-y-6 px-4 max-w-6xl mx-auto">
-  {% for lot in lots %}
-  <div onclick="window.location.href='{{ url_for('lot.lot', public_id=lot.public_id) }}'"
-       class="bg-gray-800/70 backdrop-blur rounded-2xl p-5 ring-1 ring-indigo-700/20
-              hover:ring-indigo-500/40 hover:-translate-y-0.5 transition cursor-pointer">
-
-    <div class="flex justify-between items-start mb-3">
-      <h3 class="text-lg font-semibold text-indigo-200">{{ lot.title }}</h3>
-      <span class="text-lg font-bold text-green-400 whitespace-nowrap">{{ lot.price }} ₽</span>
-    </div>
-
-    {% if lot.description %}
-      <p class="text-gray-400 text-sm">{{ lot.description[:120] }}{% if lot.description|length > 120 %}…{% endif %}</p>
-    {% endif %}
-
-    <div class="flex gap-2 text-xs text-gray-500 mt-3">
-      <span class="px-2 py-0.5 bg-gray-700/60 rounded">{{ lot.platform }}</span>
-      {% if lot.autodelivery %}
-        <span class="px-2 py-0.5 bg-green-700/40 text-green-300 rounded">⚡ Автодоставка</span>
-      {% endif %}
-    </div>
-
-    <div class="flex items-center gap-3 mt-4">
-      <img src="{{ lot.avatar_url }}" alt class="w-8 h-8 rounded-full object-cover ring-1 ring-gray-600">
-      <div>
-        <div class="text-sm text-gray-200 font-medium">{{ lot.seller }}</div>
-        <div class="flex gap-0.5 text-[11px]">
-          {% for i in range(lot.rating_int) %}
-            <span class="text-yellow-400">★</span>
-          {% endfor %}
-          {% for i in range(5 - lot.rating_int) %}
-            <span class="text-gray-500">★</span>
-          {% endfor %}
-          <span class="ml-1 text-gray-500">({{ lot.rating }})</span>
-        </div>
-      </div>
-    </div>
-
-    <a href="{{ url_for('lot.lot', public_id=lot.public_id) }}"
-       class="block text-center mt-5 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-full shadow
-              text-sm font-medium transition"
-       onclick="event.stopPropagation()">Купить</a>
-  </div>
-  {% endfor %}
-</div>
-    <style>body, main {
-  margin: 0;
-  padding: 0;
-}</style>
 {% endblock %}

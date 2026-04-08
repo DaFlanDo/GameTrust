@@ -1,25 +1,80 @@
 {% extends 'base.html' %}
-{% block title %}Диалоги — GameTrust{% endblock %}
+{% block title %}Сообщения — GameTrust{% endblock %}
+
 {% block content %}
+<div class="max-w-4xl mx-auto py-8">
+  <div class="flex items-center justify-between mb-10">
+    <h1 class="text-4xl font-extrabold tracking-tight text-blue-900">
+      Ваши <span class="text-blue-600">диалоги</span>
+    </h1>
+    <div class="px-4 py-2 glass rounded-2xl text-xs font-bold text-slate-500 uppercase tracking-widest">
+      Всего: {{ dialogs|length }}
+    </div>
+  </div>
 
-<h1 class="text-2xl font-bold text-indigo-400 mb-6 text-center">Мои диалоги</h1>
-
-<ul class="max-w-xl mx-auto space-y-4">
-  {% for dialog in dialogs %}
-    <li class="bg-gray-900 border border-gray-700 rounded-xl p-4 hover:bg-gray-800 transition">
-      <a href="{{ url_for('chat.chat_with_user', user_id=dialog.user.id) }}" class="flex items-start gap-3">
-        <img src="{{ url_for('static', filename='uploads/avatars/' ~ dialog.user.avatar) }}"
-             class="w-10 h-10 rounded-full object-cover border border-indigo-500">
-        <div class="flex flex-col overflow-hidden">
-          <div class="text-white font-semibold hover:underline">{{ dialog.user.username }}</div>
-          <div class="text-gray-400 text-sm mt-1 truncate max-w-[220px]">
-            {{ dialog.message.content }}
+  {% if dialogs %}
+    <div class="grid gap-4">
+      {% for dialog in dialogs %}
+        <a href="{{ url_for('chat.chat_with_user', user_id=dialog.user.id) }}" 
+           class="group glass rounded-[2rem] p-5 flex items-center gap-6 hover:translate-x-2 hover:bg-white/80 transition-all duration-300 border-2 border-transparent hover:border-blue-100/50 shadow-lg hover:shadow-blue-500/5">
+          
+          <!-- Avatar -->
+          <div class="relative">
+            <div class="w-16 h-16 rounded-full overflow-hidden border-2 border-white shadow-xl group-hover:scale-105 transition-transform duration-300">
+              <img src="{{ url_for('static', filename='uploads/avatars/' ~ dialog.user.avatar) }}" 
+                   class="w-full h-full object-cover"
+                   onerror="this.onerror=null; this.src='{{ url_for('static', filename='branding/GameTrustLogo2.png') }}';">
+            </div>
+            {% if dialog.unread_count > 0 %}
+              <div class="absolute -top-1 -right-1 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-[10px] font-black text-white border-4 border-white animate-pulse">
+                {{ dialog.unread_count }}
+              </div>
+            {% endif %}
           </div>
-          <div class="text-xs text-gray-500 mt-1">{{ dialog.message.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
-        </div>
-      </a>
-    </li>
-  {% endfor %}
-</ul>
 
+          <!-- Content -->
+          <div class="flex-1 min-w-0">
+            <div class="flex justify-between items-center mb-1">
+              <h3 class="text-lg font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors">
+                {{ dialog.user.username }}
+              </h3>
+              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-tighter">
+                {{ dialog.last_message.created_at.strftime('%d.%m %H:%M') }}
+              </span>
+            </div>
+            
+            <div class="flex items-center gap-2">
+              {% if dialog.last_message.sender_id == current_user.id %}
+                <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest bg-blue-50 px-2 py-0.5 rounded-md">Вы:</span>
+              {% endif %}
+              <p class="text-slate-500 text-sm truncate leading-relaxed">
+                {{ dialog.last_message.content }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Action -->
+          <div class="hidden sm:flex w-10 h-10 rounded-full glass items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
+             <svg class="w-5 h-5 translate-x-px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+             </svg>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="text-center py-20 glass rounded-[3rem] border-2 border-dashed border-blue-100">
+       <div class="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
+         <svg class="w-10 h-10 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+         </svg>
+       </div>
+       <p class="text-slate-400 font-bold uppercase tracking-widest text-sm mb-2">Здесь пока пусто</p>
+       <p class="text-slate-600 mb-8">У вас ещё нет активных диалогов.</p>
+       <a href="{{ url_for('game.all_games') }}" class="px-8 py-4 bg-blue-600 text-white rounded-full font-black text-sm shadow-xl shadow-blue-600/20 hover:scale-105 transition-all">
+         Найти товары
+       </a>
+    </div>
+  {% endif %}
+</div>
 {% endblock %}

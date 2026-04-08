@@ -31,9 +31,17 @@ def create_purchase_and_schedule(lot: Lot) -> Purchase:
     delivery_text = None
 
     if lot.autodelivery and lot.autodelivery_data:
-        lines = fernet.decrypt(lot.autodelivery_data.encode()).decode().splitlines()
-        delivery_text = lines.pop(0)                                   # открытый ключ
-        lot.autodelivery_data = fernet.encrypt("\n".join(lines).encode()).decode()
+        try:
+            data = fernet.decrypt(lot.autodelivery_data.encode()).decode()
+            lines = [line.strip() for line in data.splitlines() if line.strip()]
+            if lines:
+                delivery_text = lines.pop(0)                                   # открытый ключ
+                lot.autodelivery_data = fernet.encrypt("\n".join(lines).encode()).decode()
+            else:
+                # Если данных внезапно нет — отключаем автовыдачу для этого лота
+                lot.autodelivery = False
+        except Exception:
+            lot.autodelivery = False
 
     lot.quantity -= 1
     if lot.quantity <= 0:
@@ -74,10 +82,9 @@ def mark_purchase_paid(purchase_id: int, app):
 
         db.session.commit()
 
-        link = (
-            url_for("purchase.order", purchase_id=purchase.id, _external=True)
-            .replace("localhost", "127.0.0.1")
-        )
+        # В фоновом потоке без SERVER_NAME url_for(_external=True) падает.
+        # Используем относительную ссылку, так как она для чата внутри сайта.
+        link = f"/purchase/order/{purchase.public_id}"
         system_msg = Message(
             sender_id=purchase.seller_id,
             receiver_id=purchase.user_id,

@@ -1,169 +1,221 @@
 {% extends 'base.html' %}
-{% block title %}Заказ #{{ purchase.public_id }} — GameTrust{% endblock %}{% block content %}
+{% block title %}Заказ #{{ purchase.public_id }} — GameTrust{% endblock %}
+{% block content %}
 
-<div class="max-w-3xl mx-auto py-10 px-4 space-y-6">
-
-  <h1 class="text-3xl font-bold text-white">Ваш заказ #{{ purchase.public_id }}</h1>
-
-  <!-- Информация о заказе -->
-  <div class="bg-gray-800 rounded-xl p-6 shadow space-y-4 border border-gray-700">
-    <div class="text-white font-semibold text-xl">
-      {{ purchase.lot_title or "❌ Лот удалён" }}
+<!-- ━━━━━━━━━━━━━━━━━━ ORDER PROGRESS HEADER ━━━━━━━━━━━━━━━━━━ -->
+<div class="max-w-6xl mx-auto px-4 pt-12 pb-8">
+  <div class="flex flex-col md:flex-row items-center justify-between gap-8 mb-12">
+    <div>
+      <h1 class="text-3xl md:text-5xl font-black text-blue-900 tracking-tighter">Заказ #{{ purchase.public_id }}</h1>
+      <p class="text-slate-500 font-medium mt-1">Оформлен {{ purchase.created_at.strftime('%d.%m.%Y в %H:%M') }}</p>
     </div>
+    
+    <!-- Status Timeline (Contrast Fixed) -->
+    <div class="flex items-center gap-2 bg-white/50 backdrop-blur-xl border border-white p-2 rounded-[2rem] shadow-sm">
+       <!-- Step 1: Paid -->
+       <div class="flex items-center">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-black
+                      {{ 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' if purchase.status in ['paid', 'completed'] else 'bg-slate-100 text-slate-400' }}">1</div>
+          <span class="px-4 text-[10px] font-black uppercase tracking-widest hidden sm:block
+                       {{ 'text-blue-600' if purchase.status in ['paid', 'completed'] else 'text-slate-400' }}">Оплачен</span>
+       </div>
+       
+       <div class="w-8 h-px bg-slate-200"></div>
 
-    <div class="text-sm text-gray-400">
-      Категория: {{ purchase.lot_category or "—" }} ·
-      Платформа: {{ purchase.lot_platform or "—" }}
+       <!-- Step 2: Received -->
+       <div class="flex items-center">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-black
+                      {{ 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' if purchase.status == 'completed' else 'bg-slate-100 text-slate-400' }}">2</div>
+          <span class="px-4 text-[10px] font-black uppercase tracking-widest hidden sm:block
+                       {{ 'text-blue-600' if purchase.status == 'completed' else 'text-slate-400' }}">Получен</span>
+       </div>
+
+       <div class="w-8 h-px bg-slate-200"></div>
+
+       <!-- Step 3: Review -->
+       <div class="flex items-center">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-black
+                      {{ 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' if purchase.is_reviewed else 'bg-slate-100 text-slate-400' }}">3</div>
+          <span class="px-4 text-[10px] font-black uppercase tracking-widest hidden sm:block
+                       {{ 'text-blue-600' if purchase.is_reviewed else 'text-slate-400' }}">Отзыв</span>
+       </div>
     </div>
-
-    {% if purchase.lot_description %}
-    <div class="text-sm text-gray-300 leading-relaxed">
-      {{ purchase.lot_description }}
-    </div>
-    {% else %}
-    <div class="text-sm text-gray-500 italic">Описание недоступно</div>
-    {% endif %}
-
-<div class="text-sm text-gray-500">
-  Продавец:
-  <a href="{{ url_for('profile.user_profile', user_id=purchase.seller_id) }}"
-     class="text-indigo-400 hover:underline font-medium">
-    {{ purchase.seller_username }}
-  </a><br>
-  Стоимость: <span class="text-green-400 font-bold">{{ purchase.lot_price }} ₽</span><br>
-  Дата: {{ purchase.created_at.strftime('%d.%m.%Y %H:%M') }}<br>
-  Статус:
-{% if purchase.status == 'paid' %}
-  <span class="text-green-400 font-medium">✅ Оплачен</span>
-
-{% elif purchase.status == 'completed' %}
-  <span class="text-blue-400 font-medium">📦 Завершён</span>
-
-{% elif purchase.status == 'refunded' %}
-  <span class="text-red-400 font-medium">💸 Возврат</span>
-
-{% else %}
-  <span class="text-yellow-400 font-medium">⏳ Ожидается</span>
-{% endif %}
-</div>
   </div>
 
-  <!-- Автовыдача -->
-{% if delivery_text %}
-  <section class="bg-gradient-to-b from-indigo-800 to-indigo-900/80 rounded-xl shadow-lg ring-1 ring-indigo-700/50 p-6 mb-8">
-    <h2 class="flex items-center gap-2 text-white font-semibold text-lg mb-4">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-300" fill="none"
-           viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round"
-              d="M3 3h18l-1 13H4L3 3zm3 16h12m-9-5h6m-6-4h6" />
-      </svg>
-      Ваш товар
-    </h2>
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    
+    <!-- LEFT COLUMN: PRIMARY INFO -->
+    <div class="lg:col-span-8 space-y-8">
+      
+      <!-- Main Info Card -->
+      <div class="glass rounded-[3.5rem] border border-white shadow-2xl relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-[100px] opacity-40 -translate-y-1/2 translate-x-1/2"></div>
+        
+        <div class="p-10 relative z-10">
+           <div class="flex flex-col md:flex-row justify-between md:items-end gap-6 mb-10">
+              <div class="space-y-4">
+                 <div class="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-full text-[10px] font-black text-blue-600 uppercase tracking-widest">
+                    📦 {{ purchase.lot_category }} • {{ purchase.lot_platform }}
+                 </div>
+                 <h2 class="text-3xl font-black text-blue-900 leading-tight">
+                   {{ purchase.lot_title or "❌ Предложение удалено" }}
+                 </h2>
+              </div>
+              <div class="text-right">
+                 <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">К оплате</div>
+                 <div class="text-4xl font-black text-blue-600 tracking-tighter">{{ purchase.lot_price }} ₽</div>
+              </div>
+           </div>
 
-    <pre class="whitespace-pre-wrap break-words text-green-300 bg-gray-900/70
-                rounded-lg p-5 text-sm leading-relaxed ring-1 ring-gray-700/50
-                backdrop-blur-sm overflow-x-auto">
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+              <!-- Seller Section -->
+              <div class="flex items-center gap-4 p-5 rounded-[2rem] bg-slate-50/50 border border-white">
+                 <div class="w-12 h-12 rounded-full border-2 border-white shadow-sm overflow-hidden bg-white">
+                    <img src="https://i.pravatar.cc/100?u={{ purchase.seller_id }}" class="w-full h-full object-cover">
+                 </div>
+                 <div class="flex flex-col">
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Продавец</span>
+                    <a href="{{ url_for('profile.user_profile', user_id=purchase.seller_id) }}" class="text-sm font-bold text-blue-600 hover:underline">
+                       @{{ purchase.seller_username }}
+                    </a>
+                 </div>
+              </div>
+
+              <!-- Status Action Quick Info -->
+              <div class="flex items-center gap-4 p-5 rounded-[2rem] bg-blue-50/50 border border-blue-100/50">
+                 <div class="w-12 h-12 rounded-full bg-white flex items-center justify-center text-xl shadow-sm">
+                    {% if purchase.status == 'completed' %}🏆{% else %}⏳{% endif %}
+                 </div>
+                 <div class="flex flex-col">
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Текущий статус</span>
+                    <span class="text-sm font-black {% if purchase.status == 'completed' %}text-green-600{% else %}text-blue-600{% endif %}">
+                       {{ 'Заказ завершен' if purchase.status == 'completed' else 'Ожидание подтверждения' }}
+                    </span>
+                 </div>
+              </div>
+           </div>
+        </div>
+      </div>
+
+      <!-- DELIVERY CONTAINER (Full Width UX) -->
+      {% if delivery_text %}
+      <div class="glass rounded-[3.5rem] border border-blue-100 bg-blue-600/5 p-1 relative overflow-hidden group">
+         <div class="bg-white/80 rounded-[3.4rem] p-10 md:p-14 space-y-8">
+            <div class="flex items-center justify-between">
+               <div class="space-y-1">
+                  <h3 class="text-2xl font-black text-blue-900 tracking-tighter">Ваш товар уже здесь</h3>
+                  <p class="text-sm text-slate-500 font-medium">Данные были получены мгновенно через систему автовыдачи.</p>
+               </div>
+               <button onclick="copyToClipboard('{{ delivery_text }}')" class="p-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 active:scale-95">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+               </button>
+            </div>
+
+            <div class="relative group/code">
+               <div class="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[2.5rem] blur opacity-10 group-hover/code:opacity-20 transition-opacity"></div>
+               <pre class="relative bg-slate-900 rounded-[2.5rem] p-10 font-mono text-blue-100 text-lg leading-relaxed whitespace-pre-wrap break-all border border-white/10 shadow-2xl overflow-x-auto min-h-[160px] flex items-center justify-center text-center">
 {{ delivery_text }}
-    </pre>
-  </section>
-{% endif %}
-{% if purchase.status == 'paid' and not purchase.is_confirmed %}
-<form method="POST" action="{{ url_for('purchase.confirm_receipt', public_id=purchase.public_id) }}">    <button type="submit"
-            class="mt-6 bg-green-600 hover:bg-green-700 px-6 py-2 rounded-lg text-white text-sm transition">
-      ✅ Подтвердить получение товара
-    </button>
-  </form>
-{% endif %}
+               </pre>
+            </div>
 
-<!-- Отзыв -->
-<!-- Отзыв -->
-{% if purchase.is_reviewed and review %}
-  <div class="bg-gray-800 rounded-xl p-6 shadow border border-gray-700 space-y-3">
-    {% if request.args.get('edit') == '1' %}
-      <!-- Форма редактирования -->
-      <h2 class="text-white font-semibold text-lg mb-3">✏️ Редактировать отзыв</h2>
-      <form method="POST" action="{{ url_for('review.edit_review', review_id=review.id) }}" class="space-y-4">
-        <div class="space-y-3">
-          <label class="block text-white font-semibold text-lg">Оценка</label>
-          <div class="flex flex-col space-y-2">
-            {% for i in range(5, 0, -1) %}
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="rating" value="{{ i }}" {% if review.rating == i %}checked{% endif %} class="accent-yellow-500">
-                <span class="text-sm text-yellow-300">{{ '★' * i + '☆' * (5 - i) }}</span>
-              </label>
-            {% endfor %}
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-sm text-gray-300 mb-1">Комментарий</label>
-          <textarea name="comment" rows="4"
-                    class="w-full px-3 py-2 rounded bg-gray-900 border border-indigo-500 text-white"
-                    required>{{ review.comment }}</textarea>
-        </div>
-
-        <div class="flex gap-3">
-          <button type="submit"
-                  class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded transition">
-            Сохранить
-          </button>
-<a href="{{ url_for('purchase.order', public_id=purchase.public_id) }}"
-   class="text-sm text-gray-400 hover:text-white self-center">Отмена</a>
-        </div>
-      </form>
-    {% else %}
-      <!-- Просмотр отзыва -->
-      <div class="flex justify-between items-start">
-        <div>
-          <h2 class="text-white font-semibold text-lg mb-1">📝 Ваш отзыв</h2>
-          <div class="flex items-center gap-2">
-            <span class="text-yellow-400 font-bold text-base">★ {{ review.rating }}/5</span>
-            <span class="text-sm text-gray-500">— {{ review.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
-          </div>
-        </div>
-<a href="{{ url_for('purchase.order', public_id=purchase.public_id, edit=1) }}"           class="text-indigo-400 hover:text-indigo-300 text-sm mt-1">✏️ Редактировать</a>
+            <div class="flex justify-center gap-8">
+               <div class="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest"><span class="text-blue-500">🛡️</span> Сделка защищена</div>
+               <div class="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest"><span class="text-green-500">⚡</span> Мгновенный доступ</div>
+            </div>
+         </div>
       </div>
-      <div class="text-sm text-gray-300 whitespace-pre-wrap border-t border-gray-700 pt-3">
-        {{ review.comment }}
+      <script>
+        function copyToClipboard(text) {
+          navigator.clipboard.writeText(text).then(() => {
+            const btn = document.querySelector('button[onclick*="copyToClipboard"]');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '✓';
+            setTimeout(() => btn.innerHTML = originalHTML, 2000);
+          });
+        }
+      </script>
+      {% endif %}
+    </div>
+
+    <!-- RIGHT COLUMN: ACTIONS & REVIEWS -->
+    <div class="lg:col-span-4 space-y-8">
+      
+      <!-- Confirmation Block (Prominent) -->
+      {% if purchase.status == 'paid' and not purchase.is_confirmed %}
+      <div class="glass rounded-[3.5rem] p-1 border border-white/60 bg-white shadow-xl relative overflow-hidden group">
+         <div class="p-10 text-center space-y-8 relative z-10">
+            <div class="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto text-3xl shadow-sm border border-green-100 group-hover:scale-110 transition-transform">✅</div>
+            <div class="space-y-4">
+              <h3 class="text-2xl font-black text-blue-900 tracking-tighter">Подтвердите сделку</h3>
+              <p class="text-sm text-slate-500 font-medium leading-relaxed px-2">Если вы проверили товар и он соответствует описанию — нажмите кнопку ниже.</p>
+            </div>
+            
+            <form method="POST" action="{{ url_for('purchase.confirm_receipt', public_id=purchase.public_id) }}">
+              <button type="submit" 
+                      class="w-full py-6 bg-green-600 hover:bg-green-700 text-white font-black text-lg rounded-[2.5rem] shadow-xl shadow-green-600/25 transition-all transform active:scale-95">
+                 Подтвердить
+              </button>
+            </form>
+         </div>
       </div>
-    {% endif %}
+      {% endif %}
+
+      <!-- Review Section (Polished) -->
+      {% if purchase.status == 'completed' or purchase.is_reviewed %}
+      <div class="glass rounded-[3.5rem] p-10 border border-white shadow-xl relative overflow-hidden">
+        <div class="absolute -bottom-10 -right-10 w-32 h-32 bg-yellow-50 rounded-full blur-3xl opacity-60"></div>
+        
+        {% if purchase.is_reviewed and review %}
+           <div class="flex justify-between items-center mb-8">
+              <h3 class="text-xl font-black text-blue-900 tracking-tighter">Ваш отзыв</h3>
+              <a href="{{ url_for('purchase.order', public_id=purchase.public_id, edit=1) }}" 
+                 class="text-[10px] font-black text-blue-400 uppercase tracking-widest hover:text-blue-600">✏️ Правка</a>
+           </div>
+
+           {% if request.args.get('edit') == '1' %}
+              <form method="POST" action="{{ url_for('review.edit_review', review_id=review.id) }}" class="space-y-6">
+                 <div x-data="{ rating: {{ review.rating }} }" class="flex gap-4 justify-center">
+                    <template x-for="i in 5">
+                      <button type="button" @click="rating = i" class="text-3xl transition-all hover:scale-125" :class="i <= rating ? 'grayscale-0' : 'grayscale opacity-20'">⭐</button>
+                    </template>
+                    <input type="hidden" name="rating" x-model="rating">
+                 </div>
+                 <textarea name="comment" rows="4" required class="w-full px-6 py-5 rounded-[2rem] bg-white border border-blue-50 text-slate-800 text-sm focus:ring-4 focus:ring-blue-100 transition-all outline-none shadow-sm">{{ review.comment }}</textarea>
+                 <button type="submit" class="w-full py-5 bg-blue-600 text-white rounded-[2rem] font-black text-xs">Сохранить</button>
+              </form>
+           {% else %}
+              <div class="space-y-6">
+                 <div class="flex items-center justify-between p-5 rounded-[2rem] bg-blue-50/50 border border-blue-100">
+                    <div class="text-xl flex gap-1">{% for i in range(review.rating) %}⭐{% endfor %}</div>
+                    <span class="text-[10px] font-black text-slate-400">{{ review.created_at.strftime('%d.%m.%Y') }}</span>
+                 </div>
+                 <p class="text-sm font-medium text-slate-600 italic px-4 leading-relaxed">"{{ review.comment }}"</p>
+              </div>
+           {% endif %}
+
+        {% elif not purchase.is_reviewed %}
+           <h3 class="text-xl font-black text-blue-900 tracking-tighter mb-8 text-center">Оставьте отзыв</h3>
+           <form action="{{ url_for('review.submit_review', public_id=purchase.public_id) }}" method="POST" class="space-y-8">
+              <div x-data="{ rating: 5 }" class="flex gap-4 justify-center">
+                 <template x-for="i in 5">
+                   <button type="button" @click="rating = i" class="text-3xl transition-all hover:scale-125" :class="i <= rating ? 'grayscale-0' : 'grayscale opacity-20'">⭐</button>
+                 </template>
+                 <input type="hidden" name="rating" x-model="rating">
+              </div>
+              <textarea name="comment" rows="4" placeholder="Напишите пару слов о сделке..." class="w-full px-8 py-6 rounded-[2.5rem] bg-white border border-blue-50 text-slate-800 placeholder-slate-300 text-sm focus:ring-4 focus:ring-blue-100 transition-all outline-none shadow-sm"></textarea>
+              <button type="submit" class="w-full py-6 bg-blue-600 text-white rounded-[2.5rem] font-black text-sm shadow-xl shadow-blue-600/20 active:scale-95 transition-all">Опубликовать</button>
+           </form>
+        {% endif %}
+      </div>
+      {% else %}
+      <!-- Empty space filler for non-completed orders -->
+      <div class="hidden lg:block h-64 border-2 border-dashed border-slate-100 rounded-[3.5rem] flex items-center justify-center p-10 text-center">
+         <p class="text-xs font-black text-slate-300 uppercase tracking-widest leading-loose">Данные обновятся <br> после подтверждения заказа</p>
+      </div>
+      {% endif %}
+
+    </div>
   </div>
-
-{% elif purchase.status == 'completed' and not purchase.is_reviewed %}
-  <!-- Новая форма отзыва -->
-  <div class="bg-gray-800 rounded-xl p-6 shadow border border-gray-700">
-    <h2 class="text-white font-semibold text-lg mb-3">📝 Оставить отзыв</h2>
-<form action="{{ url_for('review.submit_review', public_id=purchase.public_id) }}" method="POST" class="space-y-4">      <div class="space-y-3">
-        <label class="block text-white font-semibold text-lg">Оценка</label>
-        <div class="flex flex-col space-y-2">
-          {% for i in range(5, 0, -1) %}
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="rating" value="{{ i }}" required class="accent-yellow-500">
-              <span class="text-sm text-yellow-300">{{ '★' * i + '☆' * (5 - i) }}</span>
-            </label>
-          {% endfor %}
-        </div>
-      </div>
-
-      <div>
-        <label class="block text-sm text-gray-300 mb-1">Комментарий</label>
-        <textarea name="comment" rows="4"
-                  class="w-full px-3 py-2 rounded bg-gray-900 border border-indigo-500 text-white"
-                  placeholder="Поделитесь впечатлением..."></textarea>
-      </div>
-
-      <button type="submit"
-              class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded transition">
-        Отправить отзыв
-      </button>
-    </form>
-  </div>
-{% endif %}
-
-<!-- Кнопка возврата -->
-<a href="{{ url_for('purchase.my_orders') }}"
-   class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 mt-6 rounded-lg shadow text-sm transition">
-  ← Вернуться к заказам
-</a>
+</div>
 
 {% endblock %}

@@ -1,56 +1,149 @@
 {% extends 'base.html' %}
-{% block title %}Редактировать лот — GameTrust{% endblock %}
+{% block title %}Редактировать: {{ lot.title }} — GameTrust{% endblock %}
 {% block content %}
 
-<div class="max-w-3xl mx-auto py-10">
-  <h1 class="text-2xl font-bold text-indigo-400 mb-6 text-center">✏️ Редактировать лот</h1>
-
-  <form method="POST" class="space-y-6">
-
-    <!-- Название -->
+<div class="max-w-4xl mx-auto px-4 py-12" x-data="{ 
+    auto: {{ 'true' if lot.autodelivery else 'false' }}, 
+    quantity: {{ lot.quantity }}, 
+    autodata: `{{ current_autodata | replace('\\', '\\\\') | replace('`', '\\`') | replace('$', '\\$') }}`,
+    get lineCount() {
+        return this.autodata.split('\n').filter(l => l.trim().length > 0).length;
+    }
+}">
+  
+  <!-- Header -->
+  <div class="flex items-center gap-6 mb-12">
+    <a href="{{ url_for('profile.user_profile', user_id=current_user.id) }}" class="w-12 h-12 glass border border-white rounded-2xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-white transition-all shadow-sm group">
+       <span class="group-hover:-translate-x-0.5 transition-transform">←</span>
+    </a>
     <div>
-      <label class="block text-sm font-medium mb-1 text-gray-300">Название</label>
-      <input type="text" name="title" value="{{ lot.title }}" required
-             class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-indigo-500 text-white focus:ring-2 focus:ring-indigo-600">
+      <h1 class="text-3xl md:text-5xl font-black text-blue-900 tracking-tighter">✏️ Редактирование</h1>
+      <p class="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">Идентификатор: <span class="text-blue-600">#{{ lot.public_id }}</span></p>
     </div>
+  </div>
 
-    <!-- Описание -->
-    <div>
-      <label class="block text-sm font-medium mb-1 text-gray-300">Описание</label>
-      <textarea name="description" rows="4"
-                class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-indigo-500 text-white focus:ring-2 focus:ring-indigo-600"
-                placeholder="Опишите ваш лот...">{{ lot.description }}</textarea>
+  <div class="glass rounded-[3.5rem] border border-white p-1 shadow-2xl relative overflow-hidden group">
+    <div class="absolute -top-24 -right-24 w-64 h-64 bg-blue-50 rounded-full blur-[80px] -z-10"></div>
+    
+    <div class="bg-white/80 rounded-[3.4rem] p-8 md:p-14">
+      <form method="POST" class="space-y-12">
+        
+        <!-- Basic Info Section -->
+        <div class="space-y-10">
+           <div class="space-y-3">
+              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-4">Название объявления</label>
+              <input type="text" name="title" value="{{ lot.title }}" required 
+                     class="w-full px-8 py-5 rounded-[2rem] bg-white border border-blue-50 focus:ring-8 focus:ring-blue-100/50 outline-none font-bold text-lg text-blue-900 shadow-sm transition-all">
+           </div>
+
+           <div class="space-y-3">
+              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-4">Подробное описание</label>
+              <textarea name="description" rows="5" required
+                        class="w-full px-8 py-6 rounded-[2.5rem] bg-white border border-blue-50 focus:ring-8 focus:ring-blue-100/50 outline-none font-medium text-slate-700 shadow-sm leading-relaxed transition-all">{{ lot.description }}</textarea>
+           </div>
+        </div>
+
+        <!-- Price & Quantity & Delivery -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
+           
+           <div class="space-y-8">
+              <div class="space-y-3">
+                 <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-4">Цена за единицу (₽)</label>
+                 <div class="relative">
+                    <input type="number" name="price" value="{{ lot.price }}" required 
+                           class="w-full px-8 py-5 rounded-[2rem] bg-white border border-blue-50 focus:ring-8 focus:ring-blue-100/50 outline-none font-black text-3xl text-blue-600 shadow-sm transition-all pr-16">
+                    <span class="absolute right-8 top-1/2 -translate-y-1/2 text-2xl font-black text-blue-200">₽</span>
+                 </div>
+              </div>
+
+              <!-- Manual Quantity Input (Fixed with x-if) -->
+              <template x-if="!auto">
+                 <div class="space-y-3">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-4">Количество в наличии</label>
+                    <div class="relative">
+                       <input type="number" name="quantity" x-model="quantity" min="1" 
+                              class="w-full px-8 py-5 rounded-[2rem] bg-white border border-blue-50 focus:ring-8 focus:ring-blue-100/50 outline-none font-black text-3xl text-slate-800 shadow-sm transition-all pr-16"
+                              required>
+                       <span class="absolute right-8 top-1/2 -translate-y-1/2 text-sm font-black text-slate-200 uppercase">Шт.</span>
+                    </div>
+                 </div>
+              </template>
+           </div>
+
+           <!-- Advanced Delivery Options -->
+           <div class="bg-blue-50/50 rounded-[3rem] p-10 border border-blue-100/50 space-y-6">
+              <div class="flex items-center justify-between">
+                 <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center text-2xl">⚡</div>
+                    <div>
+                       <div class="text-sm font-black text-blue-900 uppercase tracking-tight">Автовыдача</div>
+                       <div class="text-[9px] font-bold text-slate-400 uppercase">Мгновенно</div>
+                    </div>
+                 </div>
+                 <label class="relative inline-flex items-center cursor-pointer">
+                   <input type="checkbox" name="autodelivery" x-model="auto" class="sr-only peer">
+                   <div class="w-14 h-8 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                 </label>
+              </div>
+              <p class="text-[10px] text-slate-500 font-medium leading-relaxed italic">
+                 При включении товар выдается автоматически сразу после оплаты. Количество будет синхронизировано со списком строк ниже.
+              </p>
+           </div>
+        </div>
+
+        <!-- Autodelivery Data UX Section (Fixed with x-if) -->
+        <template x-if="auto">
+           <div x-transition:enter="transition-all duration-500" x-transition:enter-start="opacity-0 -translate-y-4" class="space-y-4">
+              <div class="flex justify-between items-center px-4">
+                 <div class="flex flex-col">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Данные товаров (по строкам)</label>
+                    <span class="text-[9px] text-blue-300 font-bold uppercase italic">Каждая строка — это отдельный аккаунт или ключ</span>
+                 </div>
+                 <div class="px-4 py-1.5 bg-blue-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-600/20">
+                    Итого: <span x-text="lineCount"></span> шт.
+                 </div>
+              </div>
+              <textarea name="autodelivery_data" x-model="autodata" rows="8"
+                        class="w-full px-8 py-6 rounded-[2.5rem] border-2 border-dashed border-blue-100 bg-white text-slate-800 font-mono text-sm focus:border-blue-400 focus:ring-4 focus:ring-blue-100/50 outline-none transition-all"
+                        placeholder="Пример:&#10;user1:pass1&#10;user2:pass2" required></textarea>
+              
+              <template x-if="lineCount === 0">
+                 <div class="p-4 bg-red-50 rounded-2xl border border-red-100 flex items-center gap-3">
+                    <span class="text-lg">⚠️</span>
+                    <p class="text-[10px] font-black text-red-500 uppercase tracking-tight">Добавьте хотя бы одну строку, чтобы лот можно было активировать</p>
+                 </div>
+              </template>
+           </div>
+        </template>
+
+        <!-- Final Status & Toggle -->
+        <div class="pt-8 border-t border-slate-50 flex flex-col md:flex-row items-center justify-between gap-8">
+           <div class="flex items-center gap-4">
+              <label class="relative inline-flex items-center cursor-pointer group">
+                  <input type="checkbox" name="is_active" id="is_active" class="sr-only peer" {% if lot.is_active %}checked{% endif %}>
+                  <div class="w-14 h-8 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600 shadow-inner group-hover:after:scale-110 transition-all"></div>
+                  <span class="ml-4 text-xs font-black text-blue-900 uppercase tracking-[0.2em]">Показывать лот на витрине</span>
+              </label>
+           </div>
+        </div>
+
+        <!-- Submit Group -->
+        <div class="pt-8 flex flex-col sm:flex-row gap-4">
+           <button type="submit" class="flex-1 py-7 bg-blue-600 text-white rounded-[2.5rem] font-black text-sm tracking-[0.2em] shadow-2xl shadow-blue-600/30 hover:scale-[1.01] active:scale-95 transition-all">
+              💾 СОХРАНИТЬ И ОПУБЛИКОВАТЬ
+           </button>
+           <a href="{{ url_for('lot.lot', public_id=lot.public_id) }}" class="flex-1 py-7 bg-white border-2 border-blue-50 text-blue-600 rounded-[2.5rem] font-black text-sm text-center hover:bg-blue-50 transition-all">
+              ОТМЕНИТЬ
+           </a>
+        </div>
+
+      </form>
     </div>
-<!-- Активен -->
-<div class="flex items-center space-x-2">
-  <input type="checkbox" name="is_active" id="is_active"
-         {% if lot.is_active %}checked{% endif %}
-         class="form-checkbox text-indigo-600 bg-gray-800 border-gray-600 rounded">
-  <label for="is_active" class="text-sm text-gray-300">Показывать лот (активен)</label>
+  </div>
 </div>
-    <!-- Цена -->
-    <div>
-      <label class="block text-sm font-medium mb-1 text-gray-300">Цена (₽)</label>
-      <input type="number" name="price" value="{{ lot.price }}" required
-             class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-indigo-500 text-white focus:ring-2 focus:ring-indigo-600">
-    </div>
 
-    <!-- Количество -->
-    <div>
-      <label class="block text-sm font-medium mb-1 text-gray-300">Количество</label>
-      <input type="number" name="quantity" value="{{ lot.quantity }}" min="1" required
-             class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-indigo-500 text-white focus:ring-2 focus:ring-indigo-600">
-    </div>
-
-    <!-- Кнопка -->
-    <div class="text-center pt-4">
-      <button type="submit"
-              class="bg-indigo-600 hover:bg-indigo-700 px-6 py-2 rounded-lg text-white font-medium shadow-md transition">
-        💾 Сохранить изменения
-      </button>
-    </div>
-
-  </form>
-</div>
+<style>
+[x-cloak] { display: none !important; }
+</style>
 
 {% endblock %}

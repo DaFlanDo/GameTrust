@@ -2,69 +2,168 @@
 {% block title %}Мои продажи — GameTrust{% endblock %}
 {% block content %}
 
-<h1 class="text-3xl font-bold text-indigo-400 text-center mb-8">💼 Мои продажи</h1>
-
-{% if purchases %}
-<div class="overflow-x-auto">
-  <table class="min-w-full bg-gray-900 border border-gray-700 rounded-xl overflow-hidden">
-    <thead>
-      <tr class="text-left text-sm text-gray-400 bg-gray-800 border-b border-gray-700">
-        <th class="px-4 py-3">Товар</th>
-        <th class="px-4 py-3">Покупатель</th>
-        <th class="px-4 py-3">Дата</th>
-        <th class="px-4 py-3">Цена</th>
-        <th class="px-4 py-3">Статус</th>
-        <th class="px-4 py-3">Отзыв</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for purchase in purchases %}
-        <tr class="text-sm text-gray-200 border-b border-gray-800 hover:bg-gray-800 transition">
-          <td class="px-4 py-3">
-            <span class="font-semibold text-indigo-300">{{ purchase.lot_title }}</span>
-            <p class="text-xs text-gray-400">{{ purchase.lot_category }} • {{ purchase.lot_platform }}</p>
-          </td>
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <img src="{{ url_for('static', filename='uploads/avatars/' ~ users_dict.get(purchase.user_id).avatar if users_dict.get(purchase.user_id).avatar else 'avatars/default.png') }}"
-                   alt="аватар"
-                   class="w-7 h-7 rounded-full border border-gray-600 object-cover">
-<a href="{{ url_for('profile.user_profile', user_id=users_dict.get(purchase.user_id).id) }}"
-   class="text-indigo-400 hover:underline">
-  {{ users_dict.get(purchase.user_id).username }}
-</a>            </div>
-          </td>
-          <td class="px-4 py-3">{{ purchase.created_at.strftime('%d.%m.%Y') }}</td>
-          <td class="px-4 py-3 text-indigo-400 font-semibold">{{ purchase.lot_price }} ₽</td>
-          <td class="px-4 py-3">
-            {% if purchase.status == 'completed' %}
-              <span class="text-green-400">Завершено</span>
-            {% else %}
-              <span class="text-yellow-400">В ожидании</span>
-            {% endif %}
-          </td>
-       <td class="px-4 py-3">
-  {% set review = reviews.get(purchase.id) %}
-  {% if review %}
-    <div class="flex items-center gap-1 mb-1">
-      {% for i in range(1, 6) %}
-        <span class="{% if i <= review.rating %}text-yellow-400{% else %}text-gray-600{% endif %}">★</span>
-      {% endfor %}
-      <span class="text-xs text-gray-400 ml-1">({{ review.rating }})</span>
+<div class="max-w-7xl mx-auto px-4 py-12" x-data="{ activeTab: 'all', search: '' }">
+  
+  <!-- ━━━━━━━━━━━━━━━━━━ HEADER & STATS ━━━━━━━━━━━━━━━━━━ -->
+  <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12">
+    <div class="space-y-2">
+      <h1 class="text-4xl md:text-5xl font-black text-blue-900 tracking-tighter">💼 Кабинет продавца</h1>
+      <p class="text-slate-500 font-medium">Управление вашими сделками и аналитика продаж.</p>
     </div>
-    <p class="text-sm text-gray-300 italic max-w-xs truncate">“{{ review.comment }}”</p>
+    
+    <div class="flex flex-wrap gap-4">
+       <div class="glass border border-white px-8 py-4 rounded-[2rem] shadow-sm flex items-center gap-4 group hover:border-blue-100 transition-colors">
+          <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-xl group-hover:scale-110 transition-transform">💰</div>
+          <div>
+            <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Всего выручено</div>
+            <div class="text-2xl font-black text-blue-600 tracking-tighter">
+               {% set total = 0 %}{% for p in purchases %}{% set total = total + p.lot_price %}{% endfor %}{{ total }} ₽
+            </div>
+          </div>
+       </div>
+       <div class="glass border border-white px-8 py-4 rounded-[2rem] shadow-sm flex items-center gap-4 group hover:border-blue-100 transition-colors">
+          <div class="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-xl group-hover:scale-110 transition-transform">📈</div>
+          <div>
+            <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Сделок</div>
+            <div class="text-2xl font-black text-slate-800 tracking-tighter">{{ purchases|length }}</div>
+          </div>
+       </div>
+    </div>
+  </div>
+
+  {% if purchases %}
+  
+  <!-- ━━━━━━━━━━━━━━━━━━ UX NAVIGATION BAR ━━━━━━━━━━━━━━━━━━ -->
+  <div class="glass rounded-[2.5rem] border border-white p-2 mb-8 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl shadow-blue-900/5">
+    <!-- Tabs -->
+    <div class="flex items-center gap-1 w-full md:w-auto overflow-x-auto scrollbar-hide px-2">
+       {% macro sale_tab(id, label, icon) %}
+       <button @click="activeTab = '{{ id }}'"
+               :class="activeTab === '{{ id }}' ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/20' : 'text-slate-500 hover:bg-blue-50 hover:text-blue-600'"
+               class="px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2">
+          <span>{{ icon }}</span> {{ label }}
+       </button>
+       {% endmacro %}
+       {{ sale_tab('all', 'Все продажи', '📁') }}
+       {{ sale_tab('active', 'В процессе', '⏳') }}
+       {{ sale_tab('completed', 'Завершенные', '✅') }}
+    </div>
+
+    <!-- Quick Search -->
+    <div class="w-full md:w-80 relative pr-4">
+       <input type="text" x-model="search" placeholder="Поиск по названию или покупателю..." 
+              class="w-full bg-white/80 border border-blue-50 rounded-2xl px-6 py-3.5 text-xs font-medium text-slate-800 placeholder-slate-400 focus:ring-4 focus:ring-blue-100/50 focus:border-blue-200 transition-all outline-none">
+       <div class="absolute right-8 top-1/2 -translate-y-1/2 text-slate-300">🔍</div>
+    </div>
+  </div>
+
+  <!-- ━━━━━━━━━━━━━━━━━━ SALES LIST (Alpine Filtering) ━━━━━━━━━━━━━━━━━━ -->
+  <div class="space-y-6">
+    {% for purchase in purchases %}
+    {% set buyer = users_dict.get(purchase.user_id) %}
+    <div x-show="(activeTab === 'all' || 
+                  (activeTab === 'active' && '{{ purchase.status }}' !== 'completed') || 
+                  (activeTab === 'completed' && '{{ purchase.status }}' === 'completed')) && 
+                 ('{{ purchase.lot_title|lower }}'.includes(search.toLowerCase()) || 
+                  '{{ buyer.username|lower if buyer else 'аноним' }}'.includes(search.toLowerCase()))"
+         x-transition:enter="transition-all duration-500 ease-out"
+         x-transition:enter-start="opacity-0 translate-y-4 scale-95"
+         class="group block glass p-1 rounded-[2.5rem] border border-white hover:border-blue-100 shadow-sm hover:shadow-2xl hover:shadow-blue-200/40 transition-all duration-500 relative overflow-hidden">
+      
+      <div class="bg-white/80 rounded-[2.4rem] p-6 sm:p-8 flex flex-col md:flex-row md:items-center gap-8">
+        
+        <!-- Status Indicator -->
+        <div class="shrink-0">
+           <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm transition-all duration-500 group-hover:scale-110
+                       {{ 'bg-green-50 text-green-600' if purchase.status == 'completed' else 'bg-blue-50 text-blue-600 animate-pulse border border-blue-100' }}">
+              {% if purchase.status == 'completed' %}🏆{% else %}⏳{% endif %}
+           </div>
+        </div>
+
+        <!-- Order Content -->
+        <div class="flex-1 min-w-0">
+           <div class="flex items-center gap-3 mb-2">
+              <span class="px-2.5 py-1 rounded-lg bg-slate-50 text-[10px] font-black text-slate-400 uppercase border border-slate-100">
+                Заказ #{{ purchase.public_id }}
+              </span>
+              {% if purchase.status != 'completed' %}
+                <span class="px-2.5 py-1 rounded-lg bg-blue-50 text-[11px] font-black text-blue-600 uppercase border border-blue-100">
+                  Активен
+                </span>
+              {% endif %}
+           </div>
+           <h3 class="text-xl font-black text-blue-900 group-hover:text-blue-600 transition-colors mb-2 truncate">
+             {{ purchase.lot_title }}
+           </h3>
+           <div class="flex items-center gap-4 text-xs font-medium text-slate-400">
+              <span class="flex items-center gap-2">📦 {{ purchase.lot_category }}</span>
+              <span class="w-1 h-1 bg-slate-200 rounded-full"></span>
+              <span class="flex items-center gap-2">📅 {{ purchase.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+           </div>
+        </div>
+
+        <!-- Buyer Info (Enhanced UX) -->
+        <div class="shrink-0 w-full md:w-56 px-6 py-4 md:py-0 md:border-x border-slate-100 border-dashed">
+           <div class="flex items-center gap-4">
+              {% if buyer.avatar %}
+                 <div class="w-10 h-10 rounded-full border-2 border-white shadow-sm overflow-hidden bg-slate-100">
+                    <img src="{{ url_for('static', filename='uploads/avatars/' ~ buyer.avatar) }}" class="w-full h-full object-cover">
+                 </div>
+              {% else %}
+                 <div class="w-10 h-10 rounded-full border-2 border-white shadow-sm bg-blue-600 flex items-center justify-center text-white text-[11px] font-black uppercase">
+                    {{ buyer.username[0] if buyer else '?' }}
+                 </div>
+              {% endif %}
+              <div class="flex flex-col">
+                 <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Покупатель</span>
+                 <a href="{{ url_for('profile.user_profile', user_id=buyer.id if buyer else 0) }}" class="text-sm font-bold text-slate-800 hover:text-blue-600 transition-colors">
+                    {{ buyer.username if buyer else 'Аноним' }}
+                 </a>
+              </div>
+           </div>
+        </div>
+
+        <!-- Payout Info & Quick Action -->
+        <div class="shrink-0 flex items-center justify-between md:flex-col md:items-end md:justify-center gap-3">
+           <div class="flex flex-col md:items-end">
+              <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Ваша выручка</span>
+              <span class="text-3xl font-black text-blue-600 tracking-tighter">{{ purchase.lot_price }} ₽</span>
+           </div>
+           
+           <div class="flex items-center gap-3">
+              <a href="{{ url_for('chat.chat_with_user', user_id=buyer.id if buyer else 0) }}" 
+                 class="w-12 h-12 glass flex items-center justify-center rounded-2xl text-blue-600 hover:bg-blue-600 hover:text-white hover:-translate-y-1 transition-all shadow-sm group/chat relative"
+                 title="Чат с покупателем">
+                💬
+              </a>
+              <a href="{{ url_for('purchase.order', public_id=purchase.public_id) }}" 
+                 class="px-8 py-3 bg-white border border-blue-100 hover:bg-blue-600 hover:text-white rounded-2xl font-black text-xs shadow-sm transition-all duration-300">
+                 Детали сделки
+              </a>
+           </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
   {% else %}
-    <span class="text-gray-500 text-sm">—</span>
+  <!-- UX: Better Empty State -->
+  <div class="py-32 text-center glass rounded-[3rem] border border-blue-50">
+    <div class="text-8xl mb-8">🚀</div>
+    <h2 class="text-3xl font-black text-blue-900 mb-4">Начните свой путь!</h2>
+    <p class="text-slate-400 font-medium max-w-sm mx-auto mb-10">Пока здесь нет продаж, но это отличный повод разместить ваш первый лот прямо сейчас.</p>
+    <a href="{{ url_for('lot.add_lot') }}" class="px-12 py-5 bg-blue-600 text-white rounded-[2rem] font-black text-lg shadow-xl shadow-blue-600/30 hover:scale-105 transition-all transition-duration-500">
+       Создать объявление
+    </a>
+  </div>
   {% endif %}
-</td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
 </div>
 
-{% else %}
-  <p class="text-gray-400 text-center text-lg">У вас пока нет продаж.</p>
-{% endif %}
+<!-- Simple custom scrollbar hide style -->
+<style>
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
 
 {% endblock %}

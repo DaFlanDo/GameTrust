@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Доступ ограничен — GameTrust{% endblock %}
+{% block content %}
+
+<div class="max-w-4xl mx-auto py-24 px-4 text-center">
+    <div class="relative inline-block mb-12">
+        <div class="text-[12rem] font-black text-blue-900/5 leading-none select-none">403</div>
+        <div class="absolute inset-0 flex items-center justify-center">
+            <span class="text-8xl">🛡️</span>
+        </div>
+    </div>
+    
+    <div class="space-y-6">
+        <h1 class="text-4xl md:text-5xl font-black text-blue-900 tracking-tighter">Доступ <span class="text-blue-600">ограничен</span></h1>
+        <p class="text-slate-500 font-medium max-w-lg mx-auto text-lg">
+            У вас нет прав для просмотра этой страницы. Это могло произойти, если вы пытаетесь открыть чат с самим собой или зайти в панель управления без прав администратора.
+        </p>
+    </div>
+
+    <div class="mt-16 flex flex-col sm:flex-row items-center justify-center gap-6">
+        <a href="{{ url_for('lot.home') }}" class="px-12 py-5 bg-blue-600 text-white rounded-[2rem] font-black shadow-xl shadow-blue-600/30 hover:scale-105 transition-all text-sm tracking-widest uppercase">
+            Вернуться домой
+        </a>
+        <a href="{{ url_for('chat.message_list') }}" class="px-12 py-5 glass border border-blue-100 text-blue-600 rounded-[2rem] font-black hover:bg-blue-50 transition-all text-sm tracking-widest uppercase">
+            Мои сообщения
+        </a>
+    </div>
+</div>
+
+{% endblock %}

@@ -80,6 +80,7 @@ class Game(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     category = db.Column(db.String(50), nullable=False)  # Например: "Аккаунты", "Ключи", "Услуги"
+    image = db.Column(db.String(255), nullable=True, default='default_game.png')
 
 
 # ──────────────── Покупка ────────────────

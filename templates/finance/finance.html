@@ -1,177 +1,177 @@
 {% extends 'base.html' %}
-{% block title %}Финансовый кабинет — GameTrust{% endblock %}
+{% block title %}Финансы — GameTrust{% endblock %}
 
 {% block content %}
-<!-- ───────── Flash‑сообщения ───────── -->
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <div id="flash-messages"
-         class="fixed top-5 left-1/2 -translate-x-1/2 z-50 space-y-2">
-      {% for category, message in messages %}
-        <div class="px-4 py-3 rounded-lg shadow-lg text-sm font-medium animate-fade-in-down
-                    {{ 'bg-green-600 text-white' if category == 'success'
-                       else 'bg-red-600 text-white' }}">
-          {{ message }}
+<div class="max-w-7xl mx-auto px-4 py-12" x-data="{ tab: 'all', topupOpen: false, withdrawOpen: false }">
+  
+  <!-- ━━━━━━━━━━━━━━━━━━ HEADER & BALANCE ━━━━━━━━━━━━━━━━━━ -->
+  <div class="flex flex-col lg:flex-row items-stretch gap-8 mb-12">
+    <!-- Main Balance Card -->
+    <div class="flex-1 glass rounded-[4rem] border border-white p-1 shadow-2xl relative overflow-hidden group">
+       <div class="absolute -top-24 -right-24 w-64 h-64 bg-blue-100/50 rounded-full blur-[80px] -z-10 transition-transform group-hover:scale-110"></div>
+       <div class="bg-white/80 rounded-[3.9rem] p-10 flex flex-col md:flex-row items-center justify-between gap-8 h-full">
+          <div class="space-y-2">
+             <div class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                <span class="w-1.5 h-1.5 bg-blue-600 rounded-full"></span> Доступный баланс
+             </div>
+             <div class="text-6xl font-black text-blue-900 tracking-tighter">{{ current_user.balance }} <span class="text-3xl text-blue-400">₽</span></div>
+             <p class="text-sm font-medium text-slate-400">Средства доступны для покупок и вывода</p>
+          </div>
+          
+          <div class="flex flex-col gap-3 w-full md:w-auto">
+             <button @click="topupOpen = true" class="px-10 py-5 bg-blue-600 text-white rounded-[2rem] font-black text-sm shadow-xl shadow-blue-600/20 hover:-translate-y-1 transition-all active:scale-95">
+                ➕ Пополнить
+             </button>
+             <button @click="withdrawOpen = true" class="px-10 py-5 bg-white border border-blue-50 text-blue-600 rounded-[2rem] font-black text-sm hover:bg-blue-50 transition-all shadow-sm">
+                📤 Вывести
+             </button>
+          </div>
+       </div>
+    </div>
+
+    <!-- Hold Balance Card -->
+    <div class="lg:w-96 glass rounded-[4rem] border border-white p-1 shadow-xl relative overflow-hidden group">
+       <div class="bg-blue-50/50 rounded-[3.9rem] p-10 flex flex-col justify-center h-full border border-blue-100/50">
+          <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm mb-6">🔒</div>
+          <div class="space-y-1">
+             <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">В холде (Ожидание)</div>
+             <div class="text-3xl font-black text-slate-800 tracking-tighter">{{ current_user.hold_balance }} ₽</div>
+          </div>
+          <p class="text-[10px] font-medium text-slate-400 mt-4 leading-relaxed italic">Средства за заблокированные сделки до их подтверждения покупателем.</p>
+       </div>
+    </div>
+  </div>
+
+  <!-- ━━━━━━━━━━━━━━━━━━ TRANSACTION HISTORY ━━━━━━━━━━━━━━━━━━ -->
+  <div class="space-y-8">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+       <h2 class="text-2xl font-black text-blue-900 tracking-tighter">📜 История операций</h2>
+       
+       <!-- History Tabs (UX Bonus) -->
+       <div class="flex items-center gap-1 glass p-1.5 rounded-full border border-white shadow-sm overflow-x-auto">
+          <button @click="tab = 'all'" :class="tab === 'all' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:text-blue-600'" class="px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all">Все</button>
+          <button @click="tab = 'income'" :class="tab === 'income' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:text-blue-600'" class="px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all">Приход</button>
+          <button @click="tab = 'outcome'" :class="tab === 'outcome' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:text-blue-600'" class="px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all">Расход</button>
+       </div>
+    </div>
+
+    <!-- Transaction List -->
+    <div class="space-y-4">
+      {% if transactions %}
+      {% for tx in transactions %}
+      <div x-show="tab === 'all' || 
+                  (tab === 'income' && {{ 'true' if tx.amount > 0 else 'false' }}) || 
+                  (tab === 'outcome' && {{ 'true' if tx.amount <= 0 else 'false' }})"
+           x-transition:enter="transition ease-out duration-300"
+           x-transition:enter-start="opacity-0 translate-y-4"
+           class="group glass p-1 rounded-[2.5rem] border border-white hover:border-blue-50 shadow-sm hover:shadow-xl hover:shadow-blue-900/5 transition-all">
+        <div class="bg-white/80 rounded-[2.45rem] p-6 flex flex-col md:flex-row md:items-center gap-6">
+           <!-- Icon Status -->
+           <div class="shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-sm
+                       {% if tx.status == 'pending' %}bg-yellow-50 text-white animate-pulse{% elif tx.status == 'cancelled' %}bg-red-50 text-white{% elif tx.amount > 0 %}bg-green-50{% else %}bg-blue-50{% endif %}">
+              {% if tx.status == 'pending' %}⏳{% elif tx.status == 'cancelled' %}❌{% elif tx.amount > 0 %}📈{% else %}🛍️{% endif %}
+           </div>
+
+           <!-- Content -->
+           <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                 <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest">{{ tx.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+                 {% if tx.status != 'completed' %}
+                    <span class="px-2 py-0.5 rounded-md bg-yellow-50 text-yellow-600 text-[8px] font-black uppercase border border-yellow-100">{{ tx.status }}</span>
+                 {% endif %}
+              </div>
+              <h4 class="text-sm font-black text-slate-800 tracking-tight flex items-center gap-2">
+                 {{ tx.description }}
+                 {% if tx.type == 'withdrawal' and tx.status == 'pending' %}
+                    <form action="{{ url_for('finance.cancel_withdraw', transaction_id=tx.id) }}" method="POST" class="inline">
+                       <button class="text-[9px] font-black text-red-400 hover:text-red-600 uppercase border-b border-red-100 ml-2">Отменить</button>
+                    </form>
+                 {% endif %}
+              </h4>
+           </div>
+
+           <!-- Amount -->
+           <div class="shrink-0 text-right">
+              <div class="text-lg font-black tracking-tighter 
+                          {% if tx.status == 'pending' %}text-yellow-500{% elif tx.status == 'cancelled' %}text-red-400 opacity-50 line-through{% elif tx.amount > 0 %}text-green-500{% else %}text-blue-600{% endif %}">
+                 {{ '+' if tx.amount > 0 else '' }}{{ tx.amount }} ₽
+              </div>
+              <div class="text-[9px] font-black text-slate-300 uppercase tracking-widest">{{ tx.status if tx.status == 'completed' else 'Обработка' }}</div>
+           </div>
         </div>
+      </div>
       {% endfor %}
-    </div>
-    <script>
-      setTimeout(() => document.getElementById('flash-messages')?.remove(), 4000);
-    </script>
-  {% endif %}
-{% endwith %}
-
-<div class="max-w-4xl mx-auto px-4 py-6">
-  <h1 class="text-2xl text-indigo-400 font-bold mb-4">💼 Финансовый кабинет</h1>
-
-  <!-- ───────── Баланс ───────── -->
-  <div class="bg-gray-800 p-6 rounded-xl shadow mb-6">
-    <p class="text-white text-lg">
-      💰 Баланс:
-      <span class="font-semibold">{{ current_user.balance }} ₽</span>
-    </p>
-    <p class="text-gray-400 text-sm mt-1">🔒 В удержании: {{ current_user.hold_balance }} ₽</p>
-    <div class="mt-4 space-x-2">
-      <button onclick="toggleModal('topupModal')"
-              class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
-        Пополнить
-      </button>
-      <button onclick="toggleModal('withdrawModal')"
-              class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg">
-        Вывести
-      </button>
-    </div>
-  </div>
-
- <!-- ───────── История транзакций ───────── -->
-<h2 class="text-indigo-300 text-xl font-semibold mb-3">📜 История операций</h2>
-
-<!-- Заголовок таблицы -->
-<div class="grid grid-cols-4 gap-2 px-3 py-2 text-gray-400 text-xs uppercase">
-  <div>Дата</div>
-  <div>Описание</div>
-  <div class="text-right">Сумма</div>
-  <div class="text-right">Статус</div>
-</div>
-
-<div class="space-y-2 text-sm">
-{% for tx in transactions %}
-  {# ───── Вычисляем цвет суммы ───── #}
-  {% if tx.status == 'pending' %}
-      {% set amt_class = 'text-yellow-400' %}
-  {% elif tx.status == 'cancelled' %}
-      {% set amt_class = 'text-red-400' %}
-  {% elif tx.amount > 0 %}
-      {% set amt_class = 'text-green-400' %}
-  {% else %}
-      {% set amt_class = 'text-red-400' %}
-  {% endif %}
-
-  <div class="grid grid-cols-4 gap-2 bg-gray-700 rounded p-3">
-    <!-- Дата -->
-    <div>{{ tx.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
-
-    <!-- Описание + «Отменить» для вывода -->
-    <div>
-      {{ tx.description }}
-      {% if tx.type == 'withdrawal' and tx.status == 'pending' %}
-        <form action="{{ url_for('finance.cancel_withdraw', transaction_id=tx.id) }}"
-              method="POST" class="inline-block ml-2">
-          <button class="text-red-400 hover:underline">Отменить</button>
-        </form>
-      {% endif %}
-    </div>
-
-    <!-- Сумма -->
-    <div class="text-right {{ amt_class }}">{{ tx.amount }} ₽</div>
-
-    <!-- Статус -->
-    <div class="text-right">
-      {% if tx.status == 'completed' %}
-        <span class="text-green-400">завершён</span>
-      {% elif tx.status == 'pending' %}
-        <span class="text-yellow-400">в ожидании</span>
-      {% elif tx.status == 'cancelled' %}
-        <span class="text-red-400">отменён</span>
       {% else %}
-        {{ tx.status }}
+        <div class="py-24 text-center glass rounded-[4rem] border border-blue-50/50 opacity-60">
+           <span class="text-4xl block mb-4">💳</span>
+           <p class="text-xs font-black text-slate-400 uppercase tracking-widest">Операций пока не было</p>
+        </div>
       {% endif %}
     </div>
   </div>
-{% endfor %}
-</div>
 
-<!-- ───────── Модальное окно пополнения ───────── -->
-<div id="topupModal"
-     class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-50">
-  <div class="bg-gray-900 p-6 rounded-xl shadow-lg w-full max-w-md relative border border-gray-700">
-    <button onclick="toggleModal('topupModal')"
-            class="absolute top-2 right-3 text-gray-400 hover:text-white text-xl">&times;</button>
-
-    <h2 class="text-xl font-semibold text-indigo-400 mb-4">Пополнение баланса</h2>
-
-    <form method="POST" action="{{ url_for('finance.init_topup') }}">
-      <label class="block text-sm text-white mb-2">Сумма (₽):</label>
-      <input type="number" name="amount" min="10" required
-             class="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white mb-4">
-
-      <label class="block text-sm text-white mb-2">Способ оплаты:</label>
-      <select name="method"
-              class="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white mb-4">
-        <option value="card">💳 Банковская карта</option>
-        <option value="yoomoney">💰 ЮMoney</option>
-        <option value="crypto">🪙 Криптовалюта</option>
-      </select>
-
-      <button type="submit"
-              class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded font-semibold">
-        Пополнить
-      </button>
-    </form>
+  <!-- ━━━━━━━━━━━━━━━━━━ MODAL: TOPUP (Alpine) ━━━━━━━━━━━━━━━━━━ -->
+  <div x-show="topupOpen" class="fixed inset-0 z-[200] flex items-center justify-center p-6" x-cloak>
+     <div class="fixed inset-0 bg-blue-900/15 backdrop-blur-xl transition-all" @click="topupOpen = false"></div>
+     <div class="w-full max-w-lg glass p-10 md:p-14 rounded-[4rem] border border-white shadow-2xl relative z-20 space-y-10" x-transition>
+        <button @click="topupOpen = false" class="absolute top-10 right-10 text-slate-400 hover:text-slate-600 uppercase text-[10px] font-black tracking-widest">закрыть</button>
+        <div class="space-y-2">
+           <h2 class="text-3xl font-black text-blue-900 tracking-tighter">Пополнение</h2>
+           <div class="h-1.5 w-12 bg-green-500 rounded-full"></div>
+        </div>
+        <form method="POST" action="{{ url_for('finance.init_topup') }}" class="space-y-8">
+           <div class="space-y-3">
+              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-4">Сумма пополнения (₽)</label>
+              <input type="number" name="amount" min="10" placeholder="От 10 ₽" required class="w-full px-8 py-5 rounded-[2rem] bg-white border border-blue-50 focus:ring-8 focus:ring-blue-100/40 outline-none font-black text-xl text-blue-900 shadow-sm">
+           </div>
+           <div class="space-y-3">
+              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-4">Способ оплаты</label>
+              <div class="grid grid-cols-1 gap-3">
+                 <label class="relative flex items-center px-8 py-5 rounded-2xl border border-blue-50 bg-white cursor-pointer hover:bg-blue-50/30 transition-all has-[:checked]:border-blue-600 has-[:checked]:ring-4 has-[:checked]:ring-blue-100/50">
+                    <input type="radio" name="method" value="card" checked class="hidden">
+                    <span class="text-sm font-bold text-slate-700 flex items-center gap-3">💳 Банковская карта</span>
+                 </label>
+                 <label class="relative flex items-center px-8 py-5 rounded-2xl border border-blue-50 bg-white cursor-pointer hover:bg-blue-50/30 transition-all has-[:checked]:border-blue-600 has-[:checked]:ring-4 has-[:checked]:ring-blue-100/50">
+                    <input type="radio" name="method" value="yoomoney" class="hidden">
+                    <span class="text-sm font-bold text-slate-700 flex items-center gap-3">💰 ЮMoney</span>
+                 </label>
+              </div>
+           </div>
+           <button type="submit" class="w-full py-6 bg-blue-600 text-white rounded-[2.5rem] font-black shadow-2xl shadow-blue-600/30 hover:scale-[1.02] active:scale-95 transition-all">ПЕРЕЙТИ К ОПЛАТЕ</button>
+        </form>
+     </div>
   </div>
-</div>
 
-<!-- ───────── Модальное окно вывода ───────── -->
-<div id="withdrawModal"
-     class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
-  <div class="bg-gray-800 p-6 rounded-xl w-full max-w-md relative border border-gray-700">
-    <button onclick="toggleModal('withdrawModal')"
-            class="absolute top-2 right-3 text-gray-400 hover:text-white text-xl">&times;</button>
-
-    <h2 class="text-xl text-indigo-400 font-bold mb-4">Вывод средств</h2>
-
-    <form method="POST" action="{{ url_for('finance.withdraw_page') }}">
-      <label class="block text-sm text-white mb-2">Сумма (₽):</label>
-      <input type="number" name="amount" min="1" required
-             class="w-full p-2 rounded bg-gray-900 border border-gray-600 text-white">
-
-      <label class="block text-sm text-white mt-4 mb-2">Реквизиты:</label>
-      <input type="text" name="details" required
-             class="w-full p-2 rounded bg-gray-900 border border-gray-600 text-white">
-
-      <button type="submit"
-              class="mt-4 bg-yellow-600 hover:bg-yellow-700 w-full text-white px-4 py-2 rounded">
-        Запросить
-      </button>
-    </form>
+  <!-- ━━━━━━━━━━━━━━━━━━ MODAL: WITHDRAW (Alpine) ━━━━━━━━━━━━━━━━━━ -->
+  <div x-show="withdrawOpen" class="fixed inset-0 z-[200] flex items-center justify-center p-6" x-cloak>
+     <div class="fixed inset-0 bg-blue-900/15 backdrop-blur-xl transition-all" @click="withdrawOpen = false"></div>
+     <div class="w-full max-w-lg glass p-10 md:p-14 rounded-[4rem] border border-white shadow-2xl relative z-20 space-y-10" x-transition>
+        <button @click="withdrawOpen = false" class="absolute top-10 right-10 text-slate-400 hover:text-slate-600 uppercase text-[10px] font-black tracking-widest">закрыть</button>
+        <div class="space-y-2">
+           <h2 class="text-3xl font-black text-blue-900 tracking-tighter">Вывод средств</h2>
+           <div class="h-1.5 w-12 bg-yellow-500 rounded-full"></div>
+        </div>
+        <form method="POST" action="{{ url_for('finance.withdraw_page') }}" class="space-y-8">
+           <div class="space-y-3">
+              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-4">Сумма вывода (₽)</label>
+              <input type="number" name="amount" min="1" placeholder="Ваш баланс: {{ current_user.balance }} ₽" required class="w-full px-8 py-5 rounded-[2rem] bg-white border border-blue-50 focus:ring-8 focus:ring-blue-100/40 outline-none font-black text-xl text-blue-900 shadow-sm">
+           </div>
+           <div class="space-y-3">
+              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-4">Реквизиты (Номер карты / Кошелек)</label>
+              <input type="text" name="details" placeholder="Напр. 4276 **** **** 9999" required class="w-full px-8 py-5 rounded-[2rem] bg-white border border-blue-50 focus:ring-8 focus:ring-blue-100/40 outline-none font-bold text-sm shadow-sm">
+           </div>
+           <p class="text-[10px] font-medium text-slate-400 px-4 text-center italic">Вывод обычно занимает от 15 минут до 24 часов.</p>
+           <button type="submit" class="w-full py-6 bg-blue-600 text-white rounded-[2.5rem] font-black shadow-2xl shadow-blue-600/30 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest">Запросить вывод</button>
+        </form>
+     </div>
   </div>
+
 </div>
 
-<!-- ───────── JS ───────── -->
-<script>
-function toggleModal(id) {
-  document.getElementById(id)?.classList.toggle('hidden');
-}
-
-/* Анимация для flash‑сообщений */
-const style = document.createElement('style');
-style.textContent = `
-@keyframes fade-in-down {
-  from {opacity:0;transform:translateY(-10px)}
-  to   {opacity:1;transform:translateY(0)}
-}
-.animate-fade-in-down{animation:fade-in-down .4s ease-out}
-`;
-document.head.appendChild(style);
-</script>
+<!-- CSS for Hide Scrollbar -->
+<style>
+[x-cloak] { display: none !important; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
 {% endblock %}

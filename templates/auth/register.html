@@ -2,26 +2,32 @@
 {% block title %}Регистрация — GameTrust{% endblock %}
 {% block content %}
 
-<div class="min-h-screen flex items-center justify-center bg-gradient-to-tr from-indigo-800 via-purple-700 to-pink-600 py-10">
+<div class="min-h-[80vh] flex items-center justify-center py-12 px-4 relative overflow-hidden">
+  
+  <div class="w-full max-w-xl glass rounded-[3rem] shadow-2xl p-8 md:p-14 border border-white/50 relative overflow-hidden">
+    
+    <!-- Decorative elements -->
+    <div class="absolute -top-10 -left-10 w-48 h-48 bg-blue-100 rounded-full blur-3xl opacity-50"></div>
+    <div class="absolute -bottom-10 -right-10 w-48 h-48 bg-blue-50 rounded-full blur-3xl opacity-50"></div>
 
-  <div class="bg-gray-900 rounded-3xl shadow-2xl overflow-hidden w-full max-w-4xl flex flex-col md:flex-row animate-fadeIn">
-
-    <!-- Левая часть (опционально с изображением) -->
-    <div class="md:w-1/2 hidden md:block">
-      <img src="{{ url_for('static', filename='img/register-art.png') }}" class="h-full w-full object-cover" alt="Register art">
-    </div>
-
-    <!-- Форма -->
-    <div class="w-full md:w-1/2 p-8 md:p-12">
-      <h2 class="text-3xl font-bold text-indigo-400 text-center mb-2">Добро пожаловать!</h2>
-      <p class="text-center text-gray-400 mb-6">Создайте аккаунт, чтобы начать</p>
+    <div class="relative z-10">
+      <div class="text-center mb-10">
+        <div class="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-full text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">
+          ✨ Новые возможности
+        </div>
+        <h2 class="text-4xl font-black text-blue-900 mb-3 tracking-tighter">Начни побеждать.</h2>
+        <p class="text-slate-500 font-medium italic">Создайте аккаунт и присоединяйтесь к нам</p>
+      </div>
 
       <!-- Flash-сообщения -->
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-          <div class="space-y-2 mb-4">
+          <div class="space-y-3 mb-8">
             {% for category, message in messages %}
-              <div class="px-4 py-3 rounded-lg text-sm font-medium bg-red-600/10 text-red-400 border border-red-600/30">
+              <div class="px-5 py-3 rounded-2xl text-sm font-bold flex items-center gap-3
+                          {% if category == 'success' %}bg-green-50 text-green-600 border border-green-100
+                          {% else %}bg-red-50 text-red-600 border border-red-100{% endif %}">
+                <span>{% if category == 'success' %}✅{% else %}⚠️{% endif %}</span>
                 {{ message }}
               </div>
             {% endfor %}
@@ -33,56 +39,58 @@
         {{ form.hidden_tag() }}
 
         <!-- Имя пользователя -->
-        <div>
-          {{ form.username.label(class_='block text-sm font-medium text-gray-300 mb-1') }}
-          {{ form.username(class_='w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:outline-none') }}
+        <div class="space-y-2">
+          <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Никнейм</label>
+          {{ form.username(class_='w-full px-6 py-4 rounded-[1.5rem] bg-white/50 border border-blue-50 text-slate-800 placeholder-slate-300 focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-400 focus:outline-none transition-all shadow-sm', placeholder='Напр: gamer_pro') }}
           {% if form.username.errors %}
-            <p class="text-sm text-red-500 mt-1">{{ form.username.errors[0] }}</p>
+            <p class="text-[10px] font-black text-red-500 uppercase tracking-wider mt-1 pl-2">{{ form.username.errors[0] }}</p>
           {% endif %}
         </div>
 
         <!-- Email -->
-        <div>
-          {{ form.email.label(class_='block text-sm font-medium text-gray-300 mb-1') }}
-          {{ form.email(class_='w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:outline-none') }}
+        <div class="space-y-2">
+          <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Email</label>
+          {{ form.email(class_='w-full px-6 py-4 rounded-[1.5rem] bg-white/50 border border-blue-50 text-slate-800 placeholder-slate-300 focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-400 focus:outline-none transition-all shadow-sm', placeholder='your@email.com') }}
           {% if form.email.errors %}
-            <p class="text-sm text-red-500 mt-1">{{ form.email.errors[0] }}</p>
+            <p class="text-[10px] font-black text-red-500 uppercase tracking-wider mt-1 pl-2">{{ form.email.errors[0] }}</p>
           {% endif %}
         </div>
 
-        <!-- Пароль -->
-        <div>
-          {{ form.password.label(class_='block text-sm font-medium text-gray-300 mb-1') }}
-          {{ form.password(class_='w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:outline-none') }}
-          {% if form.password.errors %}
-            <p class="text-sm text-red-500 mt-1">{{ form.password.errors[0] }}</p>
-          {% endif %}
-        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Пароль -->
+          <div class="space-y-2">
+            <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Пароль</label>
+            {{ form.password(class_='w-full px-6 py-4 rounded-[1.5rem] bg-white/50 border border-blue-50 text-slate-800 placeholder-slate-300 focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-400 focus:outline-none transition-all shadow-sm', placeholder='••••••••') }}
+            {% if form.password.errors %}
+              <p class="text-[10px] font-black text-red-500 uppercase tracking-wider mt-1 pl-2">{{ form.password.errors[0] }}</p>
+            {% endif %}
+          </div>
 
-        <!-- Подтверждение пароля -->
-        <div>
-          {{ form.confirm_password.label(class_='block text-sm font-medium text-gray-300 mb-1') }}
-          {{ form.confirm_password(class_='w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:outline-none') }}
-          {% if form.confirm_password.errors %}
-            <p class="text-sm text-red-500 mt-1">{{ form.confirm_password.errors[0] }}</p>
-          {% endif %}
+          <!-- Подтверждение пароля -->
+          <div class="space-y-2">
+            <label class="block text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Повторите</label>
+            {{ form.confirm_password(class_='w-full px-6 py-4 rounded-[1.5rem] bg-white/50 border border-blue-50 text-slate-800 placeholder-slate-300 focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-400 focus:outline-none transition-all shadow-sm', placeholder='••••••••') }}
+            {% if form.confirm_password.errors %}
+              <p class="text-[10px] font-black text-red-500 uppercase tracking-wider mt-1 pl-2">{{ form.confirm_password.errors[0] }}</p>
+            {% endif %}
+          </div>
         </div>
 
         <!-- Кнопка -->
         <button type="submit"
-                class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition">
-          ✨ {{ form.submit.label.text }}
+                class="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-[1.5rem] shadow-xl shadow-blue-600/20 transition-all active:scale-[0.98] mt-4">
+          Регистрация →
         </button>
       </form>
 
-      <p class="text-sm text-center text-gray-400 mt-6">
-        Уже есть аккаунт?
-        <a href="{{ url_for('auth.login') }}" class="text-indigo-400 hover:underline">Войти</a>
-      </p>
+      <div class="mt-10 text-center">
+        <p class="text-sm font-medium text-slate-400">
+          Уже играете с нами?
+          <a href="{{ url_for('auth.login') }}" class="text-blue-600 font-bold hover:underline">Войти в портал</a>
+        </p>
+      </div>
     </div>
-
   </div>
-
 </div>
 
 {% endblock %}

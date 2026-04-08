@@ -21,20 +21,23 @@ DATA_KEY  = 'home:data'
 # Главная страница
 @lot_bp.route('/')
 def home():
-    # 1) пробуем отдать уже‑сгенерированный HTML
-    cached_html = redis_client.get(PAGE_KEY)
-    if cached_html is not None:
-        print('🔄 Кеш сработал! HTML из Redis')
+    # 1) пробуем отдать уже‑сгенерированный HTML (только вне дебага)
+    if current_app.debug:
+        print('🛠️ Режим отладки: кэш отключен')
+    else:
+        cached_html = redis_client.get(PAGE_KEY)
+        if cached_html is not None:
+            print('🔄 Кеш сработал! HTML из Redis')
+            return cached_html
 
-        return cached_html                 # ← сразу отдаём браузеру
-
-    # 2) если HTML-а нет, смотрим — может, выборки уже лежат?
-    cached_data = redis_client.get(DATA_KEY)
+    # 2) если HTML-а нет, смотрим — может, выборки уже лежат? (вне дебага)
+    cached_data = None if current_app.debug else redis_client.get(DATA_KEY)
     if cached_data is not None:
         popular_lots, recent_orders, top_games, gallery_images = pickle.loads(cached_data)
     else:
-        # делаем реальные запросы к БД
-        popular_lots = (Lot.query.filter_by(is_active=True)
+        # делаем реальные запросы к БД с eager loading, чтобы не было DetachedInstanceError в шаблонах
+        popular_lots = (Lot.query.options(joinedload(Lot.user), joinedload(Lot.game))
+                              .filter_by(is_active=True)
                               .order_by(Lot.price.desc())
                               .limit(9).all())
 
@@ -63,7 +66,8 @@ def home():
         gallery_images=gallery_images
     )
 
-    redis_client.setex(PAGE_KEY, CACHE_TTL, html)
+    if not current_app.debug:
+        redis_client.setex(PAGE_KEY, CACHE_TTL, html)
     return html
 
 # Подробная страница лота
@@ -168,19 +172,20 @@ def submit_lot():
 @lot_bp.route('/lots/<category>/<int:game_id>')
 def lots(category, game_id):
     game = Game.query.get_or_404(game_id)
-    distinct_categories = {g.category for g in Game.query.with_entities(Game.category).distinct()}
-    if category not in distinct_categories:
-        return render_template('errors/404.html'), 404
+    
+    # Получаем все возможные категории из БД для навигации
+    all_categories = [
+        ('Accounts', 'Аккаунты'),
+        ('Keys', 'Ключи'),
+        ('Currency', 'Валюта'),
+        ('Services', 'Услуги')
+    ]
 
-    # Читаем GET-параметры
-    platform = request.args.get('platform')
-    sort = request.args.get('sort')
-
-    # Базовый запрос
-    lots_query = (
-        Lot.query.options(db.joinedload(Lot.user), db.joinedload(Lot.game))
-        .filter_by(category=category, game_id=game_id, is_active=True)
-    )
+    # Базовый запрос: теперь если категория 'all', мы не фильтруем по ней
+    lots_query = Lot.query.options(db.joinedload(Lot.user), db.joinedload(Lot.game)).filter_by(game_id=game_id, is_active=True)
+    
+    if category != 'all':
+        lots_query = lots_query.filter_by(category=category)
     # Получаем параметры из URL
     platform = request.args.get('platform')
     sort = request.args.get('sort')
@@ -274,8 +279,8 @@ def lots(category, game_id):
         platform=platform,
         sort=sort,
         auto=auto,
-        has_more=pagination.has_next,
-        page=page
+        page=page,
+        all_categories=all_categories
     )
 
 # Удаление лота
@@ -326,25 +331,69 @@ def edit_lot(public_id):
     lot = Lot.query.filter_by(public_id=public_id).first_or_404()
     if lot.user_id != current_user.id:
         flash("Вы не можете редактировать этот лот", "danger")
-        return redirect(url_for('profile.user_profile',user_id=current_user.id))
+        return redirect(url_for('profile.user_profile', user_id=current_user.id))
+
+    # Рашифровываем текущие данные автовыдачи для формы
+    current_autodata = ""
+    if lot.autodelivery and lot.autodelivery_data:
+        try:
+            from extensions import fernet
+            current_autodata = fernet.decrypt(lot.autodelivery_data.encode()).decode()
+        except:
+            current_autodata = "ОШИБКА ДЕШИФРОВАНИЯ"
 
     if request.method == 'POST':
-        lot.title = request.form['title']
-        lot.description = request.form['description']
-        lot.price = int(request.form['price'])
-        lot.quantity = int(request.form['quantity'])
+        # Сначала собираем все данные из формы, чтобы они были доступны для рендера при ошибках
+        title = request.form.get('title', '')
+        description = request.form.get('description', '')
+        price_raw = request.form.get('price', '0')
+        antodata_form = request.form.get("autodelivery_data", "").strip()
+        autodeliv = "autodelivery" in request.form
+        is_active = "is_active" in request.form
 
-        # ✅ Проверка чекбокса (очень важно: не используем bool(...)!)
-        lot.is_active = 'is_active' in request.form
-        quantity = int(request.form.get('quantity', 1))
-        if quantity < 1:
-            flash("Количество должно быть не меньше 1", "danger")
-            return redirect(url_for('lot.edit_lot', public_id=lot.public_id))
+        # Обновляем объект лота (без коммита пока)
+        lot.title = title
+        lot.description = description
+        lot.autodelivery = autodeliv
+        lot.is_active = is_active
+        
+        try:
+            lot.price = int(price_raw)
+        except ValueError:
+            flash("Некорректная цена", "danger")
+            return render_template('lots/edit_lot.html', lot=lot, current_autodata=antodata_form)
+
+        if autodeliv:
+            lines = [l.strip() for l in antodata_form.splitlines() if l.strip()]
+            lot.quantity = len(lines)
+            
+            if lot.quantity > 0:
+                from extensions import fernet
+                plaintext = "\n".join(lines)
+                lot.autodelivery_data = fernet.encrypt(plaintext.encode()).decode()
+            else:
+                lot.autodelivery_data = None
+                lot.is_active = False
+                db.session.commit()
+                flash("Ошибка: Автовыдача не может быть активна без данных.", "danger")
+                return render_template('lots/edit_lot.html', lot=lot, current_autodata=antodata_form)
+        else:
+            try:
+                lot.quantity = int(request.form.get('quantity', 1))
+            except ValueError:
+                lot.quantity = 1
+            lot.autodelivery_data = None
+
+        # Финальная проверка активности
+        if lot.is_active and lot.quantity < 1:
+            flash("Нельзя опубликовать лот с нулевым количеством. Добавьте товар.", "danger")
+            return render_template('lots/edit_lot.html', lot=lot, current_autodata=antodata_form)
 
         db.session.commit()
-        return redirect(url_for('profile.user_profile',user_id=current_user.id))
+        flash("Изменения успешно сохранены", "success")
+        return redirect(url_for('profile.user_profile', user_id=current_user.id))
 
-    return render_template('lots/edit_lot.html', lot=lot)
+    return render_template('lots/edit_lot.html', lot=lot, current_autodata=current_autodata)
 def human_time_since(registration_date):
     from datetime import datetime
 

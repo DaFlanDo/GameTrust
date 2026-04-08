@@ -2,109 +2,203 @@
 {% block title %}{{ lot.title }} — GameTrust{% endblock %}
 {% block content %}
 
-<main class="max-w-5xl mx-auto px-4 py-10 space-y-8">
+<div class="max-w-7xl mx-auto px-4 py-12">
+  
+  <!-- Breadcrumbs & Owner Controls (UX) -->
+  <div class="flex flex-col md:flex-row items-center justify-between gap-6 mb-10">
+    <nav class="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+       <a href="/" class="hover:text-blue-600 transition-colors">Маркетплейс</a>
+       <span class="opacity-30">/</span>
+       <a href="{{ url_for('lot.lots_by_game', category=lot.category, game_id=lot.game_id) }}" class="hover:text-blue-600 transition-colors">{{ lot.game.name if lot.game else 'Игра' }}</a>
+       <span class="opacity-30">/</span>
+       <span class="text-blue-600 uppercase">Детали лота</span>
+    </nav>
 
-  <!-- ───────── Верхняя часть: галерея + инфо ───────── -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
+    {% if current_user.id == lot.user_id %}
+    <div class="flex items-center gap-3 glass p-2 rounded-2xl border border-blue-100 shadow-xl shadow-blue-600/5">
+       <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest px-4 border-r border-blue-50">Управление:</span>
+       <a href="{{ url_for('lot.edit_lot', public_id=lot.public_id) }}" class="px-6 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">
+          Редактировать ✏️
+       </a>
+       <form action="{{ url_for('lot.delete_lot', public_id=lot.public_id) }}" method="POST" onsubmit="return confirm('Вы уверены? Это действие нельзя отменить.')">
+          <button type="submit" class="px-6 py-2 bg-white border border-red-50 text-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-all">
+             Удалить 🗑️
+          </button>
+       </form>
+    </div>
+    {% endif %}
+  </div>
 
-    <!-- ───── Галерея ───── -->
-    {% if lot.images %}
-      <div class="space-y-4" id="gallery">
-        <!-- Главное изображение -->
-        <div class="overflow-hidden rounded-xl border border-gray-700 shadow">
-          <img id="mainImage" src="{{ url_for('static', filename='uploads/' ~ lot.images[0]) }}"
-               alt="{{ lot.title }}"
-               class="w-full h-64 object-cover transition duration-300">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+    
+    <!-- ━━━━━━━━━━━━━━━━━━ LEFT: GALLERY & DESCRIPTION ━━━━━━━━━━━━━━━━━━ -->
+    <div class="lg:col-span-8 space-y-10">
+      
+      <!-- Gallery Container -->
+      <div class="glass rounded-[3rem] p-4 border border-white shadow-2xl shadow-blue-900/5 relative overflow-hidden group" id="gallery">
+        <!-- Main Image -->
+        <div class="aspect-video rounded-[2.5rem] overflow-hidden bg-slate-100 relative">
+          {% if lot.images %}
+            <img id="mainImage" src="{{ url_for('static', filename='uploads/' ~ lot.images[0]) }}" 
+                 class="w-full h-full object-cover transition-all duration-700 group-hover:scale-105">
+          {% else %}
+             <div class="w-full h-full flex flex-col items-center justify-center text-slate-300">
+                <svg class="w-20 h-20 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <span class="font-black uppercase tracking-widest text-xs">Нет изображений</span>
+             </div>
+          {% endif %}
+          
+          <!-- Floating Category Badge -->
+          <div class="absolute top-6 left-6">
+             <span class="px-4 py-2 bg-white/90 backdrop-blur rounded-2xl text-[10px] font-black text-blue-600 uppercase tracking-widest shadow-xl">
+               {{ lot.platform or 'Multi' }}
+             </span>
+          </div>
         </div>
-        <!-- Миниатюры -->
-        <div class="grid grid-cols-3 gap-3">
+
+        <!-- Thumbnails -->
+        {% if lot.images and lot.images|length > 1 %}
+        <div class="flex gap-4 mt-4 px-2 overflow-x-auto pb-2 scrollbar-hide">
           {% for img in lot.images %}
-            <img data-src="{{ url_for('static', filename='uploads/' ~ img) }}"
-                 src="{{ url_for('static', filename='uploads/' ~ img) }}"
-                 alt="thumb {{ loop.index }}"
-                 class="thumb w-full h-20 object-cover rounded-lg border border-gray-700 cursor-pointer hover:scale-105 transition">
+            <div class="thumb-wrapper shrink-0 cursor-pointer group/thumb" 
+                 data-src="{{ url_for('static', filename='uploads/' ~ img) }}">
+               <img src="{{ url_for('static', filename='uploads/' ~ img) }}" 
+                    class="w-24 h-16 object-cover rounded-2xl border-2 {{ 'border-blue-600 shadow-lg shadow-blue-600/20' if loop.first else 'border-transparent shadow-sm' }} transition-all hover:scale-105">
+            </div>
           {% endfor %}
         </div>
-      </div>
-    {% else %}
-      <div class="h-64 bg-gray-700 rounded-lg flex items-center justify-center text-gray-400">Нет изображений</div>
-    {% endif %}
-
-    <!-- ───── Информация о лоте ───── -->
-    <div class="space-y-5">
-      <h1 class="text-3xl font-bold text-white">{{ lot.title }}</h1>
-      <p class="text-sm text-gray-400">{{ lot.category }} / {{ lot.platform }}</p>
-      <div class="text-xs text-gray-400">(235 отзывов)</div>
-
-      {% if lot.autodelivery %}
-        <span class="inline-block bg-indigo-600 text-white text-xs font-medium px-3 py-1 rounded-full">
-          ⚡ Автодоставка — моментально
-        </span>
-      {% endif %}
-
-      <div class="text-sm text-gray-300 whitespace-pre-line border-t border-gray-700 pt-4">
-        {{ lot.description }}
-      </div>
-
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gray-800 border border-gray-700 p-4 rounded-xl">
-        <div>
-          <div class="text-sm text-gray-400">Цена:</div>
-          <div class="text-2xl font-bold text-green-400">{{ lot.price }} ₽</div>
-        </div>
-        <div>
-          <div class="text-sm text-gray-400">В наличии:</div>
-          <div class="text-xl text-white">{{ lot.quantity }} шт.</div>
-        </div>
-
-        {% if lot.quantity > 0 %}
-        <form action="{{ url_for('purchase.start_purchase',public_id = lot.public_id) }}" method="POST">
-          <button type="submit"
-                  class="mt-4 sm:mt-0 bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition text-sm shadow">
-            Купить
-          </button>
-        </form>
-        {% else %}
-          <span class="mt-4 sm:mt-0 text-sm text-red-400 font-medium">Нет в наличии</span>
         {% endif %}
       </div>
-    </div>
-  </div>
 
-  <!-- Карточка продавца -->
-  <div class="bg-gray-900 border border-gray-700 p-5 rounded-xl flex items-center justify-between">
-    <div class="flex items-center gap-4">
-      <img src="{{ url_for('static', filename='uploads/avatars/' ~ user.avatar) if user.avatar else 'https://i.pravatar.cc/100?u=' ~ user.id }}"
-           alt="avatar"
-           class="w-14 h-14 rounded-full object-cover shadow ring-1 ring-gray-700">
-      <div>
-        <div class="text-white font-semibold text-lg">{{ lot.seller }}</div>
-<div class="text-xs text-gray-400">
-  На сайте {{ years }} {{ 'год' if years == 1 else 'года' }} · {{ sales }} продаж
-</div>
+      <!-- Description Block -->
+      <div class="glass rounded-[3rem] p-10 border border-white/60 shadow-xl relative overflow-hidden">
+        <h3 class="text-xl font-black text-blue-900 mb-6 flex items-center gap-3">
+           📑 Описание товара
+        </h3>
+        <div class="text-slate-600 font-medium leading-relaxed prose prose-blue max-w-none">
+          {{ lot.description or 'Продавец не предоставил подробного описания для данного лота.' }}
+        </div>
       </div>
     </div>
-    <a href="{{ url_for('profile.user_profile', user_id=lot.user_id) }}"
-       class="text-sm text-indigo-400 hover:underline">Профиль продавца</a>
+
+    <!-- ━━━━━━━━━━━━━━━━━━ RIGHT: PURCHASE & SELLER ━━━━━━━━━━━━━━━━━━ -->
+    <div class="lg:col-span-4 space-y-8 sticky top-28">
+      
+      <!-- Purchase Card -->
+      <div class="glass rounded-[3rem] p-1 border border-white shadow-[0_30px_100px_rgba(0,0,0,0.05)] relative overflow-hidden">
+        <div class="bg-white/80 rounded-[2.9rem] p-8 md:p-10 space-y-8">
+           
+           <div>
+              <h1 class="text-3xl font-black text-blue-900 tracking-tighter mb-2 leading-tight">
+                {{ lot.title }}
+              </h1>
+              {% if lot.autodelivery %}
+                <div class="inline-flex items-center gap-2 px-3 py-1 bg-green-50 text-[10px] font-black text-green-600 rounded-full border border-green-100 uppercase tracking-widest animate-fade-in">
+                  ⚡ Автовыдача — мгновенно
+                </div>
+              {% endif %}
+           </div>
+
+           <div class="flex items-end justify-between border-y border-slate-50 py-8">
+              <div class="flex flex-col">
+                 <span class="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Сумма к оплате</span>
+                 <span class="text-4xl font-black text-blue-600 tracking-tighter">{{ lot.price }} ₽</span>
+              </div>
+              <div class="flex flex-col items-end">
+                 <span class="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">В наличии</span>
+                 <span class="text-lg font-bold text-slate-700">{{ lot.quantity }} шт.</span>
+              </div>
+           </div>
+
+           {% if lot.quantity > 0 %}
+           <form action="{{ url_for('purchase.start_purchase', public_id=lot.public_id) }}" method="POST">
+              <button type="submit" 
+                      class="group relative w-full py-6 bg-blue-600 rounded-[2rem] text-white font-black text-xl shadow-[0_20px_50px_rgba(37,99,235,0.25)] hover:shadow-[0_25px_60px_rgba(37,99,235,0.35)] transition-all duration-500 overflow-hidden hover:-translate-y-1 active:scale-95">
+                 <div class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                 <span class="relative z-10">Купить сейчас</span>
+              </button>
+           </form>
+           {% else %}
+              <div class="w-full py-6 bg-slate-100 rounded-[2rem] text-slate-400 font-black text-center uppercase tracking-widest text-sm">
+                 Нет в наличии
+              </div>
+           {% endif %}
+
+           <p class="text-[10px] text-center text-slate-400 font-black uppercase tracking-widest">
+             🔒 Безопасная сделка через Гарант
+           </p>
+        </div>
+      </div>
+
+      <!-- Seller Card -->
+      <div class="glass rounded-[3rem] p-8 border border-white/60 shadow-xl relative group">
+         <div class="flex items-center gap-5 mb-6">
+            <div class="w-16 h-16 rounded-full border-4 border-white shadow-md overflow-hidden bg-slate-100 group-hover:scale-105 transition-transform duration-500">
+               <img src="{{ url_for('static', filename='uploads/avatars/' ~ user.avatar) if user.avatar else 'https://i.pravatar.cc/100?u=' ~ user.id }}" 
+                    class="w-full h-full object-cover">
+            </div>
+            <div class="flex flex-col">
+               <span class="text-lg font-black text-blue-900">{{ lot.seller }}</span>
+               <div class="flex items-center gap-1 text-sm text-yellow-500 font-black">
+                  ⭐ 5.0 <span class="text-slate-300 font-medium text-xs ml-1">(235 отзывов)</span>
+               </div>
+            </div>
+         </div>
+
+         <div class="grid grid-cols-2 gap-3 mb-6">
+            <div class="bg-blue-50/50 p-4 rounded-3xl border border-blue-50 text-center">
+               <div class="text-[10px] font-black text-slate-400 uppercase mb-1">Продаж</div>
+               <div class="text-lg font-black text-blue-900">{{ sales }}</div>
+            </div>
+            <div class="bg-blue-50/50 p-4 rounded-3xl border border-blue-50 text-center">
+               <div class="text-[10px] font-black text-slate-400 uppercase mb-1">На сайте</div>
+               <div class="text-lg font-black text-blue-900">{{ years }}л.</div>
+            </div>
+         </div>
+
+         <div class="space-y-3">
+           <a href="{{ url_for('profile.user_profile', user_id=lot.user_id) }}" 
+              class="block w-full py-4 bg-white border border-blue-100 hover:bg-blue-50 text-center rounded-2xl text-xs font-black text-blue-600 transition-all">
+             Профиль продавца →
+           </a>
+           
+           {% if current_user.id != lot.user_id %}
+           <a href="{{ url_for('chat.chat_with_user', user_id=lot.user_id) }}" 
+              class="block w-full py-4 bg-blue-600 text-white text-center rounded-2xl text-xs font-black shadow-lg shadow-blue-600/20 hover:scale-105 active:scale-95 transition-all">
+             Написать продавцу 💬
+           </a>
+           {% endif %}
+         </div>
+      </div>
+
+    </div>
   </div>
 </div>
 
-
-</main>
-
-<!-- ───────── JS для галереи ───────── -->
+<!-- JS for Gallery -->
 <script>
-(function(){
-  const main = document.getElementById('mainImage');
-  document.querySelectorAll('#gallery .thumb').forEach(thumb => {
-    thumb.addEventListener('click', () => {
-      // меняем src большого изображения
-      main.src = thumb.dataset.src;
-      // визуально выделяем выбранную миниатюру
-      document.querySelectorAll('#gallery .thumb').forEach(t => t.classList.remove('ring-2','ring-indigo-400'));
-      thumb.classList.add('ring-2','ring-indigo-400');
+  (function(){
+    const main = document.getElementById('mainImage');
+    const thumbs = document.querySelectorAll('.thumb-wrapper');
+    
+    thumbs.forEach(thumb => {
+      thumb.addEventListener('click', () => {
+        const newSrc = thumb.dataset.src;
+        main.style.opacity = '0';
+        setTimeout(() => {
+          main.src = newSrc;
+          main.style.opacity = '1';
+        }, 150);
+        
+        // Update rings
+        thumbs.forEach(t => t.querySelector('img').classList.replace('border-blue-600', 'border-transparent'));
+        thumbs.forEach(t => t.querySelector('img').classList.remove('shadow-lg', 'shadow-blue-600/20'));
+        
+        thumb.querySelector('img').classList.replace('border-transparent', 'border-blue-600');
+        thumb.querySelector('img').classList.add('shadow-lg', 'shadow-blue-600/20');
+      });
     });
-  });
-})();
+  })();
 </script>
 
 {% endblock %}

@@ -1,28 +1,58 @@
 {% extends 'base.html' %}
-{% block title %}Оплата — GameTrust{% endblock %}
+{% block title %}Обработка заказа — GameTrust{% endblock %}
 {% block content %}
 
-<div class="max-w-3xl mx-auto py-12 px-4 space-y-6">
+<div class="min-h-[70vh] flex items-center justify-center px-4">
+  <div class="w-full max-w-xl glass rounded-[3rem] p-12 text-center border border-white/50 shadow-2xl relative overflow-hidden">
+    
+    <!-- Decorative Orbs -->
+    <div class="absolute -top-10 -right-10 w-40 h-40 bg-blue-100 rounded-full blur-3xl opacity-50"></div>
+    <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-50 rounded-full blur-3xl opacity-50"></div>
 
-  <h1 class="text-2xl font-bold text-white">Оплата заказа</h1>
+    <div class="relative z-10 space-y-10">
+      
+      <!-- Processing Animation -->
+      <div class="relative w-32 h-32 mx-auto">
+         <div class="absolute inset-0 border-4 border-blue-50 rounded-full"></div>
+         <div class="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+         <div class="absolute inset-0 flex items-center justify-center text-4xl">
+            📦
+         </div>
+      </div>
 
-  <div class="bg-gray-800 rounded-xl p-6 space-y-4">
-    <p class="text-gray-300">Вы покупаете: <strong>{{ lot.title }}</strong></p>
-    <p class="text-gray-400">Цена: <strong class="text-green-400">{{ lot.price }} ₽</strong></p>
+      <div class="space-y-4">
+        <h1 class="text-3xl font-black text-blue-900 tracking-tighter">Оформляем заказ...</h1>
+        <p class="text-slate-500 font-medium">Почти готово! Мы подготавливаем безопасную сделку для покупки <span class="text-blue-600 font-bold">«{{ lot.title }}»</span>.</p>
+      </div>
 
-    {% if purchase.status == 'pending' %}
-      <div class="text-sm text-yellow-400">⏳ Ожидается подтверждение оплаты... (авто через 5 сек)</div>
-      <script>
-        setTimeout(() => {
-          window.location.href = "{{ url_for('purchase.order', public_id=purchase.public_id) }}";
-        }, 6000);
-      </script>
-    {% elif purchase.status == 'paid' %}
-      <div class="text-sm text-green-400">✅ Оплата прошла успешно!</div>
-      <p class="text-gray-400">Продавец свяжется с вами для доставки товара.</p>
-    {% endif %}
+      <!-- Order Details Summary -->
+      <div class="bg-blue-50/50 rounded-[2rem] p-8 border border-blue-100/50 space-y-4">
+         <div class="flex justify-between items-center text-xs font-black text-slate-400 uppercase tracking-widest">
+            <span>Предмет</span>
+            <span>Стоимость</span>
+         </div>
+         <div class="flex justify-between items-end">
+            <span class="text-sm font-bold text-slate-800 text-left max-w-[200px] truncate">{{ lot.title }}</span>
+            <span class="text-2xl font-black text-blue-600 tracking-tighter">{{ lot.price }} ₽</span>
+         </div>
+      </div>
+
+      {% if purchase.status == 'pending' %}
+        <div class="flex flex-col items-center gap-2">
+           <div class="text-[10px] font-black text-blue-400 uppercase tracking-widest animate-pulse">⏳ Ожидание подтверждения</div>
+           <script>
+             setTimeout(() => {
+               window.location.href = "{{ url_for('purchase.order', public_id=purchase.public_id) }}";
+             }, 3000);
+           </script>
+        </div>
+      {% endif %}
+
+      <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest italic pt-6">
+        * Вы будете перенаправлены на страницу заказа через несколько секунд
+      </p>
+    </div>
   </div>
-
 </div>
 
 {% endblock %}
