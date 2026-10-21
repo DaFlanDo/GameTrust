@@ -1,41 +1,48 @@
-version: "3.9"
-
 services:
   web:
     build: .
-    container_name: gametrust_web
     ports:
       - "5050:5000"
-    volumes:
-      - .:/app
-    depends_on:
-      - redis
-      - db
     environment:
-      FLASK_APP: app.py
-      FLASK_DEBUG: 1
-      FLASK_ENV: development
-      DATABASE_URL: postgresql://daflando:secret@localhost:5432/gametrust
+      SECRET_KEY: ${SECRET_KEY:?задайте SECRET_KEY в .env}
+      FERNET_SECRET_KEY: ${FERNET_SECRET_KEY:?задайте FERNET_SECRET_KEY в .env}
+      DATABASE_URL: postgresql://gametrust:${POSTGRES_PASSWORD:?задайте POSTGRES_PASSWORD в .env}@db:5432/gametrust
       REDIS_URL: redis://redis:6379/0
-
-  redis:
-    image: redis:7
-    container_name: gametrust_redis
-    ports:
-      - "6379:6379"
+      RATELIMIT_STORAGE_URI: redis://redis:6379/1
+      SEED_DEMO: ${SEED_DEMO:-1}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+    volumes:
+      - uploads:/app/static/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 
   db:
-    image: postgres:15
-    container_name: gametrust_db
-    restart: always
+    image: postgres:16-alpine
     environment:
       POSTGRES_DB: gametrust
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: gametrust
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?задайте POSTGRES_PASSWORD в .env}
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gametrust -d gametrust"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
 
 volumes:
   pgdata:
+  uploads:

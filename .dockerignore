@@ -1,0 +1,15 @@
+.git
+.env
+venv
+.venv
+__pycache__
+*.pyc
+instance
+static/uploads
+users.db
+.pytest_cache
+tests
+*.docx
+.DS_Store
+.idea
+.vscode
