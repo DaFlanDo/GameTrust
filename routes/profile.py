@@ -1,46 +1,49 @@
 import os
+import uuid
 from collections import defaultdict
+from datetime import datetime
 
-from flask import Blueprint, render_template, url_for, redirect, current_app, request
-from flask_login import login_required, current_user
-from werkzeug.utils import secure_filename
+from flask import Blueprint, render_template, url_for, redirect, current_app, request, flash, abort
+from flask_login import current_user
+from sqlalchemy import func
 
-from EditProfileForm import EditProfileForm
 from extensions import db
 from models import User, Lot, Review
-from datetime import datetime
+from routes.lot import is_allowed
 
 profile_bp = Blueprint('profile', __name__)
 
-from collections import defaultdict
 
-from collections import defaultdict
-from datetime import datetime
-from sqlalchemy import func
 
 @profile_bp.route('/user/<int:user_id>', methods=['GET', 'POST'])
 def user_profile(user_id):
-    user = User.query.get_or_404(user_id)
-    if request.method == 'POST' and user.id == current_user.id:
-        # Изменение имени
-        new_username = request.form.get('username')
-        if new_username and new_username != user.username:
-            user.username = new_username.strip()
+    user = db.get_or_404(User, user_id)
+    if request.method == 'POST':
+        if not current_user.is_authenticated or user.id != current_user.id:
+            abort(403)
 
-        # Обработка аватарки
+        new_username = (request.form.get('username') or '').strip()
+        if new_username and new_username != user.username:
+            if not 3 <= len(new_username) <= 30:
+                flash('Имя должно быть от 3 до 30 символов', 'danger')
+            elif User.query.filter_by(username=new_username).first():
+                flash('Это имя уже занято', 'danger')
+            else:
+                user.username = new_username
+
+        # Аватар: только картинки и под случайным именем — иначе можно загрузить
+        # .html и получить XSS с нашего же домена
         avatar_file = request.files.get('avatar')
-        if avatar_file and avatar_file.filename != '':
-            filename = secure_filename(avatar_file.filename)
-            # Добавим таймштамп, чтобы избежать дублей и проблем с кэшем
-            unique_filename = f"{int(datetime.utcnow().timestamp())}_{filename}"
-            upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'avatars')
-            
-            # 🛡️ Важно: создаем папку, если её нет
-            os.makedirs(upload_dir, exist_ok=True)
-            
-            avatar_path = os.path.join(upload_dir, unique_filename)
-            avatar_file.save(avatar_path)
-            user.avatar = unique_filename
+        if avatar_file and avatar_file.filename:
+            if not is_allowed(avatar_file.filename):
+                flash('Аватар должен быть картинкой (png, jpg, webp, gif)', 'danger')
+            else:
+                ext = avatar_file.filename.rsplit('.', 1)[1].lower()
+                filename = f"{uuid.uuid4().hex}.{ext}"
+                upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'avatars')
+                os.makedirs(upload_dir, exist_ok=True)
+                avatar_file.save(os.path.join(upload_dir, filename))
+                user.avatar = filename
 
         db.session.commit()
         return redirect(url_for('profile.user_profile', user_id=user.id))

@@ -96,7 +96,7 @@
              {{ purchase.lot_title }}
            </h3>
            <div class="flex items-center gap-4 text-xs font-medium text-slate-400">
-              <span class="flex items-center gap-2">📦 {{ purchase.lot_category }}</span>
+              <span class="flex items-center gap-2">📦 {{ purchase.lot_category|category_label }}</span>
               <span class="w-1 h-1 bg-slate-200 rounded-full"></span>
               <span class="flex items-center gap-2">📅 {{ purchase.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
            </div>
@@ -107,7 +107,7 @@
            <div class="flex items-center gap-4">
               {% if buyer.avatar %}
                  <div class="w-10 h-10 rounded-full border-2 border-white shadow-sm overflow-hidden bg-slate-100">
-                    <img src="{{ url_for('static', filename='uploads/avatars/' ~ buyer.avatar) }}" class="w-full h-full object-cover">
+                    <img src="{{ avatar_url(buyer) }}" class="w-full h-full object-cover">
                  </div>
               {% else %}
                  <div class="w-10 h-10 rounded-full border-2 border-white shadow-sm bg-blue-600 flex items-center justify-center text-white text-[11px] font-black uppercase">

@@ -1,39 +1,47 @@
-import os
+import logging
+import secrets
 import smtplib
 from email.header import Header
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formataddr
-from flask_mail import Mail
+
 from cryptography.fernet import Fernet
 from flask import current_app, render_template
-from flask_migrate import Migrate
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-import secrets
+from flask_login import LoginManager
+from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
+from flask_wtf import CSRFProtect
 from itsdangerous import URLSafeTimedSerializer
 from redis import Redis
 
 from config import Config
 
-mail = Mail()
-def get_serializer():
-    return URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+logger = logging.getLogger(__name__)
 
 db = SQLAlchemy()
 login_manager = LoginManager()
 limiter = Limiter(get_remote_address)
-fernet = Fernet(Config.FERNET_SECRET_KEY)
+csrf = CSRFProtect()
 migrate = Migrate()
-redis_client = Redis.from_url(Config.REDIS_URL, decode_responses=False)
+fernet = Fernet(Config.FERNET_SECRET_KEY)
+redis_client = Redis.from_url(Config.REDIS_URL, decode_responses=False,
+                              socket_connect_timeout=0.5, socket_timeout=0.5)
 
+
+def get_serializer():
+    return URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+
+
+# Кэш не обязателен: если Redis недоступен, страницы просто собираются заново
 def get_cache(key):
     try:
         return redis_client.get(key)
     except Exception:
         return None
+
 
 def set_cache(key, value, ttl=300):
     try:
@@ -41,62 +49,34 @@ def set_cache(key, value, ttl=300):
     except Exception:
         pass
 
+
 def delete_cache(*keys):
     try:
         redis_client.delete(*keys)
     except Exception:
         pass
 
-# Отмена давних транзакций
-def cancel_expired_transactions(app,minutes=1):
-    with app.app_context():
-        from models import Transaction  # импорт внутри функции
-        from datetime import datetime, timedelta
-        expiration_time = datetime.utcnow() - timedelta(minutes=minutes)
-        expired = (
-            Transaction.query
-            .filter(Transaction.status == 'pending')
-            .filter(Transaction.type=='topup')
-            .filter(Transaction.created_at < expiration_time)
-            .all()
-        )
-
-        for tx in expired:
-            tx.status = 'cancelled'
-
-        if expired:
-            db.session.commit()
 
 def generate_short_id(length=6):
     return secrets.token_hex(length // 2)
 
 
-SMTP_SERVER = Config.SMTP_SERVER
-SMTP_PORT = Config.SMTP_PORT
-SMTP_USER = Config.SMTP_USER
-SMTP_PASSWORD = Config.SMTP_PASSWORD
-
-
-# Отправка письма
 def send_confirmation_email(to_email, confirm_url):
-    # Рендерим HTML
-    html_body = render_template('mail/email.html', confirm_url=confirm_url)
+    cfg = current_app.config
+    if not cfg['SMTP_USER']:
+        logger.warning("SMTP не настроен, ссылка подтверждения для %s: %s", to_email, confirm_url)
+        return
 
-    # Создаём письмо
+    html_body = render_template('mail/email.html', confirm_url=confirm_url)
     msg = MIMEMultipart('alternative')
     msg['Subject'] = Header('Подтвердите вашу почту — GameTrust', 'utf-8')
-    msg['From'] = formataddr((str(Header('GameTrust', 'utf-8')), SMTP_USER))
+    msg['From'] = formataddr((str(Header('GameTrust', 'utf-8')), cfg['SMTP_USER']))
     msg['To'] = to_email
+    msg.attach(MIMEText(html_body.encode('utf-8'), 'html', 'utf-8'))
 
-    # Тело письма
-    html_part = MIMEText(html_body.encode('utf-8'), 'html', 'utf-8')
-    msg.attach(html_part)
-
-    # Отправка
     try:
-        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.sendmail(SMTP_USER, [to_email], msg.as_bytes())
-            print("✅ Письмо успешно отправлено.")
-    except Exception as e:
-        print("❌ Ошибка отправки письма:", e)
+        with smtplib.SMTP_SSL(cfg['SMTP_SERVER'], cfg['SMTP_PORT']) as server:
+            server.login(cfg['SMTP_USER'], cfg['SMTP_PASSWORD'])
+            server.sendmail(cfg['SMTP_USER'], [to_email], msg.as_bytes())
+    except Exception:
+        logger.exception("Не удалось отправить письмо на %s", to_email)

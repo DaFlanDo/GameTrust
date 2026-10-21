@@ -4,7 +4,7 @@
 <h1 class="text-3xl font-bold text-white mb-8">Управление играми</h1>
 
 <!-- Добавление новой игры -->
-<form method="post" class="grid md:grid-cols-3 gap-4 bg-dark p-6 rounded-xl shadow mb-8">
+<form method="post" class="grid md:grid-cols-3 gap-4 bg-dark p-6 rounded-xl shadow mb-8"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <input type="text" name="name" placeholder="Название игры"
          required class="px-4 py-2 bg-gray-800 text-white rounded w-full">
 
@@ -40,7 +40,7 @@
         <td class="px-4 py-3">{{ game.category }}</td>
         <td class="px-4 py-3">
           <form method="post" action="{{ url_for('admin.delete_game', game_id=game.id) }}"
-                onsubmit="return confirm('Удалить игру {{ game.name }}?')">
+                onsubmit="return confirm('Удалить игру {{ game.name }}?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="text-red-500 hover:underline text-sm">Удалить</button>
           </form>
         </td>

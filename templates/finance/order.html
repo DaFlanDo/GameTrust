@@ -55,7 +55,7 @@
            <div class="flex flex-col md:flex-row justify-between md:items-end gap-6 mb-10">
               <div class="space-y-4">
                  <div class="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-full text-[10px] font-black text-blue-600 uppercase tracking-widest">
-                    📦 {{ purchase.lot_category }} • {{ purchase.lot_platform }}
+                    📦 {{ purchase.lot_category|category_label }} • {{ purchase.lot_platform }}
                  </div>
                  <h2 class="text-3xl font-black text-blue-900 leading-tight">
                    {{ purchase.lot_title or "❌ Предложение удалено" }}
@@ -71,7 +71,7 @@
               <!-- Seller Section -->
               <div class="flex items-center gap-4 p-5 rounded-[2rem] bg-slate-50/50 border border-white">
                  <div class="w-12 h-12 rounded-full border-2 border-white shadow-sm overflow-hidden bg-white">
-                    <img src="https://i.pravatar.cc/100?u={{ purchase.seller_id }}" class="w-full h-full object-cover">
+                    <img src="{{ avatar_url(purchase.seller) }}" class="w-full h-full object-cover">
                  </div>
                  <div class="flex flex-col">
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Продавец</span>
@@ -150,7 +150,7 @@
               <p class="text-sm text-slate-500 font-medium leading-relaxed px-2">Если вы проверили товар и он соответствует описанию — нажмите кнопку ниже.</p>
             </div>
             
-            <form method="POST" action="{{ url_for('purchase.confirm_receipt', public_id=purchase.public_id) }}">
+            <form method="POST" action="{{ url_for('purchase.confirm_receipt', public_id=purchase.public_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" 
                       class="w-full py-6 bg-green-600 hover:bg-green-700 text-white font-black text-lg rounded-[2.5rem] shadow-xl shadow-green-600/25 transition-all transform active:scale-95">
                  Подтвердить
@@ -173,7 +173,7 @@
            </div>
 
            {% if request.args.get('edit') == '1' %}
-              <form method="POST" action="{{ url_for('review.edit_review', review_id=review.id) }}" class="space-y-6">
+              <form method="POST" action="{{ url_for('review.edit_review', review_id=review.id) }}" class="space-y-6"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                  <div x-data="{ rating: {{ review.rating }} }" class="flex gap-4 justify-center">
                     <template x-for="i in 5">
                       <button type="button" @click="rating = i" class="text-3xl transition-all hover:scale-125" :class="i <= rating ? 'grayscale-0' : 'grayscale opacity-20'">⭐</button>
@@ -195,7 +195,7 @@
 
         {% elif not purchase.is_reviewed %}
            <h3 class="text-xl font-black text-blue-900 tracking-tighter mb-8 text-center">Оставьте отзыв</h3>
-           <form action="{{ url_for('review.submit_review', public_id=purchase.public_id) }}" method="POST" class="space-y-8">
+           <form action="{{ url_for('review.submit_review', public_id=purchase.public_id) }}" method="POST" class="space-y-8"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <div x-data="{ rating: 5 }" class="flex gap-4 justify-center">
                  <template x-for="i in 5">
                    <button type="button" @click="rating = i" class="text-3xl transition-all hover:scale-125" :class="i <= rating ? 'grayscale-0' : 'grayscale opacity-20'">⭐</button>

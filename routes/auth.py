@@ -1,6 +1,4 @@
-from flask_limiter import Limiter
 from flask import Blueprint, render_template, redirect, url_for, request, flash
-from flask_limiter.util import get_remote_address
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import check_password_hash, generate_password_hash
 from extensions import db, limiter, get_serializer, send_confirmation_email
@@ -12,6 +10,7 @@ auth_bp = Blueprint('auth', __name__)
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute", methods=["POST"])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('lot.home'))
@@ -29,15 +28,11 @@ def login():
                 # Проверка, был ли введён TOTP или резервный код
                 totp_code = request.form.get("totp_code")
                 backup_code = request.form.get("backup_code")
-                print("TOTP submitted:", totp_code)
-                print("Backup code submitted:", backup_code)
 
                 if totp_code and verify_totp(user, totp_code):
-                    print("✅ TOTP verification passed")
                     login_user(user)
                     return redirect(url_for('lot.home'))
                 elif backup_code and use_backup_code(user, backup_code):
-                    print("✅ Backup code verification passed")
                     db.session.commit()
                     login_user(user)
                     return redirect(url_for('lot.home'))
@@ -55,6 +50,7 @@ def login():
 
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
+@limiter.limit("5 per minute", methods=["POST"])
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('lot.home'))

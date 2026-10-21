@@ -1,10 +1,8 @@
-from collections import defaultdict
 from datetime import datetime, timedelta
 from functools import wraps
 
 from flask import render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
-from sqlalchemy.orm import joinedload
 
 from . import admin_bp
 
@@ -17,10 +15,8 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-from flask import render_template
-from flask_login import login_required
-from . import admin_bp
 from models import User, Lot, Purchase, Review, Message, Transaction
+import escrow
 from extensions import db, delete_cache
 from sqlalchemy import func
 
@@ -36,36 +32,22 @@ def dashboard():
     message_count = Message.query.filter_by(is_read=False).count()
     total_balance = db.session.query(db.func.sum(User.balance)).scalar() or 0
 
-    # Сбор статистики по дням
+    # Статистика за неделю: по одному GROUP BY на график вместо запроса на каждый день
     last_days = [(datetime.utcnow() - timedelta(days=i)).date() for i in reversed(range(7))]
-    day_strs = [d.strftime('%d.%m') for d in last_days]
+    since = datetime.combine(last_days[0], datetime.min.time())
 
-    daily_users = defaultdict(int)
-    users = User.query.filter(User.created_at >= datetime.utcnow() - timedelta(days=7)).all()
-    for user in users:
-        date_key = user.created_at.date()
-        daily_users[date_key] += 1
-
-    chart_labels = day_strs
-    chart_data = [daily_users.get(day, 0) for day in last_days]
-    # Добавь в dashboard() перед return:
+    def per_day(column, value=func.count()):
+        day = func.date(column)
+        rows = db.session.query(day, value).filter(column >= since).group_by(day).all()
+        by_day = {str(d): int(v or 0) for d, v in rows}
+        return [by_day.get(str(d), 0) for d in last_days]
 
     chart_labels = [d.strftime('%d.%m') for d in last_days]
-
-    users_per_day = [User.query.filter(db.func.date(User.created_at) == day).count() for day in last_days]
-    lots_per_day = [Lot.query.filter(db.func.date(Lot.created_at) == day).count() for day in last_days]
-    purchases_per_day = [Purchase.query.filter(db.func.date(Purchase.created_at) == day).count() for day in last_days]
-
-    # Пример: доход = сумма lot_price по дням
-    income_per_day = [
-        db.session.query(db.func.sum(Purchase.lot_price))
-        .filter(db.func.date(Purchase.created_at) == day)
-        .scalar() or 0 for day in last_days
-    ]
-
-    messages_per_day = [Message.query.filter(db.func.date(Message.created_at) == day).count() for day in last_days]
-
-    # Добавь в render_template:
+    users_per_day = per_day(User.created_at)
+    lots_per_day = per_day(Lot.created_at)
+    purchases_per_day = per_day(Purchase.created_at)
+    income_per_day = per_day(Purchase.created_at, func.sum(Purchase.lot_price))
+    messages_per_day = per_day(Message.created_at)
 
     return render_template('admin/dashboard.html',
                            user_count=user_count,
@@ -276,77 +258,42 @@ def view_chat(user1_id, user2_id):
 @login_required
 @admin_required
 def manage_orders():
-    from models import Purchase, User
-
     purchases = Purchase.query.order_by(Purchase.created_at.desc()).all()
     return render_template('admin/orders.html', purchases=purchases)
+
+
 @admin_bp.route('/admin/orders/<int:order_id>/confirm', methods=['POST'])
 @login_required
 @admin_required
 def confirm_order(order_id):
-    order = Purchase.query.get_or_404(order_id)
-
-    if not order.is_confirmed:
-        order.is_confirmed = True
-        order.status = 'completed'
-        # перевести деньги продавцу
-        seller = User.query.get(order.seller_id)
-        if seller:
-            seller.balance += order.lot_price
-        db.session.commit()
-
-    flash('Заказ подтверждён и оплачен продавцу.', 'success')
+    order = db.get_or_404(Purchase, order_id)
+    try:
+        escrow.complete_purchase(order)
+    except escrow.EscrowError as e:
+        flash(str(e), 'warning')
+        return redirect(url_for('admin.manage_orders'))
+    flash('Заказ подтверждён, деньги переведены продавцу.', 'success')
     return redirect(url_for('admin.manage_orders'))
+
 
 @admin_bp.route('/admin/orders/<int:order_id>/refund', methods=['POST'])
 @login_required
 @admin_required
 def refund_order(order_id):
-    order = Purchase.query.get_or_404(order_id)
-
-    if order.status == 'refunded':
-        flash('Заказ уже был возвращён.', 'warning')
+    order = db.get_or_404(Purchase, order_id)
+    try:
+        escrow.refund_purchase(order)
+    except escrow.EscrowError as e:
+        flash(str(e), 'warning')
         return redirect(url_for('admin.manage_orders'))
-
-    # Изменяем статус заказа
-    order.status = 'refunded'
-    order.is_confirmed = False
-
-    # Получаем пользователя и продавца
-    user = User.query.get(order.user_id)
-    seller = User.query.get(order.seller_id)
-
-    # Возвращаем деньги покупателю
-    if user:
-        user.balance += order.lot_price
-        db.session.add(Transaction(
-            user_id=user.id,
-            amount=order.lot_price,
-            type='refund',
-            status='completed',
-            description=f'Возврат за заказ #{order.id}'
-        ))
-
-    # Вычитаем деньги у продавца (если заказ уже был подтверждён)
-    if order.is_confirmed and seller:
-        seller.balance -= order.lot_price
-        db.session.add(Transaction(
-            user_id=seller.id,
-            amount=-order.lot_price,
-            type='refund',
-            status='completed',
-            description=f'Возврат покупателю за заказ #{order.id}'
-        ))
-
-    db.session.commit()
-    flash('Средства возвращены покупателю, транзакции добавлены.', 'success')
+    flash('Средства возвращены покупателю.', 'success')
     return redirect(url_for('admin.manage_orders'))
 
 @admin_bp.route('/admin/reviews/<int:review_id>/delete', methods=['POST'])
 @login_required
 @admin_required
 def delete_review(review_id):
-    from models import Review, Purchase
+    from models import Review
 
     review = Review.query.get_or_404(review_id)
 

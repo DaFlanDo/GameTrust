@@ -44,14 +44,14 @@
         </td>
         <td class="px-4 py-3 flex gap-2">
           <!-- Деактивация -->
-          <form method="post" action="{{ url_for('admin.toggle_lot', lot_id=lot.id) }}">
+          <form method="post" action="{{ url_for('admin.toggle_lot', lot_id=lot.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button class="text-yellow-400 hover:underline text-sm">
               {% if lot.is_active %} Отключить {% else %} Включить {% endif %}
             </button>
           </form>
           <!-- Удаление -->
           <form method="post" action="{{ url_for('admin.delete_lot', lot_id=lot.id) }}"
-                onsubmit="return confirm('Удалить лот {{ lot.title }}?')">
+                onsubmit="return confirm('Удалить лот {{ lot.title }}?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button class="text-red-500 hover:underline text-sm">Удалить</button>
           </form>
         </td>

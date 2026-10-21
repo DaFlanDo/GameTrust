@@ -1,13 +1,13 @@
-import time
 from datetime import datetime
-from flask import Blueprint, render_template, request, redirect, url_for, abort, jsonify
+from flask import Blueprint, render_template, request, abort, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy import desc, func, case, and_, or_
 
-from extensions import db
+from extensions import db, limiter
 from models import User, Message
 
 chat_bp = Blueprint('chat', __name__)
+MAX_MESSAGE_LENGTH = 2000
 
 # Список сообщений
 @chat_bp.route('/messages')
@@ -141,19 +141,25 @@ def get_message_updates(user_id):
 
 # Отправка сообщений
 @chat_bp.route('/api/messages/send', methods=['POST'])
+@limiter.limit("30 per minute")
 @login_required
 def send_message_api():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     receiver_id = data.get("receiver_id")
-    content = data.get("content")
+    content = (data.get("content") or "").strip()
 
-    if not receiver_id or not content or not content.strip():
+    if not content:
         return jsonify({"status": "error", "message": "Введите сообщение"}), 400
+    if len(content) > MAX_MESSAGE_LENGTH:
+        return jsonify({"status": "error", "message": "Слишком длинное сообщение"}), 400
+    receiver = db.session.get(User, receiver_id) if isinstance(receiver_id, int) else None
+    if receiver is None or receiver.id == current_user.id:
+        return jsonify({"status": "error", "message": "Получатель не найден"}), 404
 
     message = Message(
         sender_id=current_user.id,
-        receiver_id=receiver_id,
-        content=content.strip()
+        receiver_id=receiver.id,
+        content=content
     )
     db.session.add(message)
     db.session.commit()

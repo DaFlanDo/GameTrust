@@ -13,7 +13,7 @@
       </a>
       <div class="relative">
         <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-lg">
-          <img src="{{ url_for('static', filename='uploads/avatars/' ~ other_user.avatar) }}" 
+          <img src="{{ avatar_url(other_user) }}" 
                class="w-full h-full object-cover"
                onerror="this.onerror=null; this.src='{{ url_for('static', filename='branding/GameTrustLogo2.png') }}';">
         </div>
@@ -116,7 +116,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     fetch("/api/messages/send", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token() }}" },
       body: JSON.stringify({ receiver_id: otherUserId, content: content })
     })
     .then(res => res.json())
@@ -145,13 +145,16 @@ document.addEventListener("DOMContentLoaded", function () {
       div.innerHTML = `
         <div class="max-w-[75%] group">
           <div class="relative px-5 py-3 rounded-[1.5rem] shadow-sm ${isOwn ? 'bg-blue-600 text-white rounded-tr-none' : 'glass text-slate-800 rounded-tl-none'}">
-            <p class="text-sm leading-relaxed">${msg.content}</p>
+            <p class="text-sm leading-relaxed"></p>
             <div class="flex items-center justify-end gap-1 mt-1 opacity-60">
-              <span class="text-[9px] font-bold uppercase">${msg.timestamp}</span>
+              <span class="text-[9px] font-bold uppercase"></span>
               ${isOwn ? '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>' : ''}
             </div>
           </div>
         </div>`;
+      // Текст пользователя — только через textContent, иначе это XSS
+      div.querySelector('p').textContent = msg.content;
+      div.querySelector('span').textContent = msg.timestamp;
     }
     
     chatBox.appendChild(div);

@@ -1,7 +1,7 @@
 from flask import Blueprint, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from extensions import db
-from models import Purchase, Review, User
+from models import Purchase, Review
 
 review_bp = Blueprint('review', __name__)
 
@@ -50,7 +50,7 @@ def edit_review(review_id):
 
     if review.reviewer_id != current_user.id:
         flash("Вы не можете редактировать этот отзыв.", "danger")
-        return redirect(url_for('main.index'))
+        return redirect(url_for('lot.home'))
 
     rating = int(request.form.get('rating', 0))
     comment = request.form.get('comment', '').strip()

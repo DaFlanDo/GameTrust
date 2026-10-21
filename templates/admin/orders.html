@@ -72,7 +72,7 @@
             </div>
             <form method="post"
                   action="{{ url_for('admin.delete_review', review_id=order.review.id) }}"
-                  onsubmit="return confirm('Удалить отзыв?')">
+                  onsubmit="return confirm('Удалить отзыв?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button class="text-red-500 hover:underline text-xs mt-1">Удалить отзыв</button>
             </form>
           {% else %}
@@ -84,13 +84,13 @@
         <td class="px-4 py-3 flex flex-col gap-1">
 {% if order.status != 'refunded' %}
   {% if not order.is_confirmed %}
-    <form method="post" action="{{ url_for('admin.confirm_order', order_id=order.id) }}">
+    <form method="post" action="{{ url_for('admin.confirm_order', order_id=order.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="text-green-400 hover:underline text-sm">Подтвердить</button>
     </form>
   {% endif %}
 
   <form method="post" action="{{ url_for('admin.refund_order', order_id=order.id) }}"
-        onsubmit="return confirm('Вернуть {{ order.lot_price }} ₽ пользователю?')">
+        onsubmit="return confirm('Вернуть {{ order.lot_price }} ₽ пользователю?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button class="text-red-500 hover:underline text-sm">Возврат</button>
   </form>
 {% else %}

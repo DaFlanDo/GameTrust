@@ -1,11 +1,7 @@
-# routes/security.py
-import base64
-import os
-import qrcode
 import pyotp
-import io
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, send_file
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
+
 from extensions import db
 from totp2fa import generate_qr_code, get_backup_codes, generate_backup_codes, verify_totp, generate_totp_secret, \
     decrypt_totp_secret, use_backup_code
@@ -54,19 +50,6 @@ def setup_2fa():
 
     return render_template('auth/2fa.html', qr_code=qr_code, setup_complete=False)
 
-
-@security_bp.route('/2fa/qr.png')
-@login_required
-def get_2fa_qr():
-    if '2fa_secret' not in session:
-        return "QR-код не найден", 404
-    totp = pyotp.TOTP(session['2fa_secret'])
-    otp_auth_url = totp.provisioning_uri(name=current_user.email, issuer_name="GameTrust")
-    img = qrcode.make(otp_auth_url)
-    buf = io.BytesIO()
-    img.save(buf, format='PNG')
-    buf.seek(0)
-    return send_file(buf, mimetype='image/png')
 
 @security_bp.route('/2fa/disable', methods=['POST'])
 @login_required

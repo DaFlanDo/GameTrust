@@ -1,8 +1,8 @@
-import pickle
+import json
 
-from flask import Blueprint, render_template, jsonify, request
+from flask import Blueprint, render_template, jsonify
 from models import Game
-from extensions import db, get_cache, set_cache
+from extensions import get_cache, set_cache
 
 game_bp = Blueprint('game', __name__)
 
@@ -24,21 +24,15 @@ def show_games(category):
 
     cached_data = get_cache(cache_key)
     if cached_data:
-        print('Кэш сработал')
-        games = pickle.loads(cached_data)
+        games = json.loads(cached_data)
     else:
-        games = Game.query.filter_by(category=category).all()
-        set_cache(cache_key, pickle.dumps(games), ttl=600)  # 10 минут
+        games = [{'id': g.id, 'name': g.name, 'category': g.category, 'image': g.image}
+                 for g in Game.query.filter_by(category=category).all()]
+        set_cache(cache_key, json.dumps(games), ttl=600)  # 10 минут
 
     return render_template('lots/games.html', category=category, games=games)
 @game_bp.route('/api/games')
 def get_games_by_category():
-    category = request.args.get('category')
-    if not category:
-        return jsonify([])
-
-    games = Game.query.filter_by(category=category).all()
-    print(category)
+    # Игра одна на все категории: и ключи, и аккаунты CS2 относятся к одной записи
+    games = Game.query.order_by(Game.name).all()
     return jsonify([{'id': game.id, 'name': game.name} for game in games])
-
-

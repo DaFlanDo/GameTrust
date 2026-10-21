@@ -77,13 +77,13 @@
               <div class="flex items-center gap-2 mb-1">
                  <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest">{{ tx.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
                  {% if tx.status != 'completed' %}
-                    <span class="px-2 py-0.5 rounded-md bg-yellow-50 text-yellow-600 text-[8px] font-black uppercase border border-yellow-100">{{ tx.status }}</span>
+                    <span class="px-2 py-0.5 rounded-md bg-yellow-50 text-yellow-600 text-[8px] font-black uppercase border border-yellow-100">{{ 'Отменено' if tx.status == 'cancelled' else 'В обработке' }}</span>
                  {% endif %}
               </div>
               <h4 class="text-sm font-black text-slate-800 tracking-tight flex items-center gap-2">
                  {{ tx.description }}
                  {% if tx.type == 'withdrawal' and tx.status == 'pending' %}
-                    <form action="{{ url_for('finance.cancel_withdraw', transaction_id=tx.id) }}" method="POST" class="inline">
+                    <form action="{{ url_for('finance.cancel_withdraw', transaction_id=tx.id) }}" method="POST" class="inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                        <button class="text-[9px] font-black text-red-400 hover:text-red-600 uppercase border-b border-red-100 ml-2">Отменить</button>
                     </form>
                  {% endif %}
@@ -96,7 +96,7 @@
                           {% if tx.status == 'pending' %}text-yellow-500{% elif tx.status == 'cancelled' %}text-red-400 opacity-50 line-through{% elif tx.amount > 0 %}text-green-500{% else %}text-blue-600{% endif %}">
                  {{ '+' if tx.amount > 0 else '' }}{{ tx.amount }} ₽
               </div>
-              <div class="text-[9px] font-black text-slate-300 uppercase tracking-widest">{{ tx.status if tx.status == 'completed' else 'Обработка' }}</div>
+              <div class="text-[9px] font-black text-slate-300 uppercase tracking-widest">{{ 'Выполнено' if tx.status == 'completed' else 'Обработка' }}</div>
            </div>
         </div>
       </div>
@@ -119,7 +119,7 @@
            <h2 class="text-3xl font-black text-blue-900 tracking-tighter">Пополнение</h2>
            <div class="h-1.5 w-12 bg-green-500 rounded-full"></div>
         </div>
-        <form method="POST" action="{{ url_for('finance.init_topup') }}" class="space-y-8">
+        <form method="POST" action="{{ url_for('finance.init_topup') }}" class="space-y-8"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
            <div class="space-y-3">
               <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-4">Сумма пополнения (₽)</label>
               <input type="number" name="amount" min="10" placeholder="От 10 ₽" required class="w-full px-8 py-5 rounded-[2rem] bg-white border border-blue-50 focus:ring-8 focus:ring-blue-100/40 outline-none font-black text-xl text-blue-900 shadow-sm">
@@ -151,7 +151,7 @@
            <h2 class="text-3xl font-black text-blue-900 tracking-tighter">Вывод средств</h2>
            <div class="h-1.5 w-12 bg-yellow-500 rounded-full"></div>
         </div>
-        <form method="POST" action="{{ url_for('finance.withdraw_page') }}" class="space-y-8">
+        <form method="POST" action="{{ url_for('finance.withdraw_page') }}" class="space-y-8"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
            <div class="space-y-3">
               <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-4">Сумма вывода (₽)</label>
               <input type="number" name="amount" min="1" placeholder="Ваш баланс: {{ current_user.balance }} ₽" required class="w-full px-8 py-5 rounded-[2rem] bg-white border border-blue-50 focus:ring-8 focus:ring-blue-100/40 outline-none font-black text-xl text-blue-900 shadow-sm">

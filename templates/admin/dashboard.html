@@ -76,7 +76,7 @@
 </div>
 
 <script>
-  const labels = {{ chart_labels|safe }};
+  const labels = {{ chart_labels|tojson }};
 
   const options = {
     responsive: true,
@@ -85,7 +85,7 @@
     },
     scales: {
       x: { ticks: { color: 'white' } },
-      y: { ticks: { color: 'white' } }
+      y: { beginAtZero: true, ticks: { color: 'white', precision: 0 } }
     }
   };
 
@@ -110,11 +110,11 @@
     });
   };
 
-  createChart("chartUsers", "Пользователи", {{ users_per_day|safe }});
-  createChart("chartLots", "Лоты", {{ lots_per_day|safe }}, 'bar');
-  createChart("chartPurchases", "Покупки", {{ purchases_per_day|safe }}, 'bar');
-  createChart("chartIncome", "Доход", {{ income_per_day|safe }});
-  createChart("chartMessages", "Сообщения", {{ messages_per_day|safe }});
+  createChart("chartUsers", "Пользователи", {{ users_per_day|tojson }});
+  createChart("chartLots", "Лоты", {{ lots_per_day|tojson }}, 'bar');
+  createChart("chartPurchases", "Покупки", {{ purchases_per_day|tojson }}, 'bar');
+  createChart("chartIncome", "Доход", {{ income_per_day|tojson }});
+  createChart("chartMessages", "Сообщения", {{ messages_per_day|tojson }});
 </script>
 <div class="bg-dark rounded-xl p-6 shadow text-center">
   <h2 class="text-xl font-bold text-white mb-4">Активность (заглушка)</h2>

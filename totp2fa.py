@@ -6,7 +6,6 @@ import qrcode
 import io
 import base64
 from extensions import fernet
-from flask import url_for
 
 
 def generate_totp_secret():

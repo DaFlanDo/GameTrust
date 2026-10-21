@@ -9,7 +9,7 @@
       <nav class="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
          <a href="/" class="hover:text-blue-600 transition-colors">Маркетплейс</a>
          <span class="opacity-30">/</span>
-         <span class="text-blue-500">{{ game.category }}</span>
+         <span class="text-blue-500">{{ dict(all_categories).get(category, 'Все товары') }}</span>
       </nav>
       <h1 class="text-4xl md:text-5xl font-black text-blue-900 tracking-tighter">
         {{ game.name }}
@@ -148,7 +148,7 @@
             <div class="flex-1 min-w-0">
                <div class="flex items-center gap-3 mb-2">
                   <span class="px-2.5 py-0.5 rounded-lg bg-blue-50 text-[10px] font-black text-blue-600 uppercase border border-blue-100">
-                    {{ game.category }}
+                    {{ lot.category|category_label }}
                   </span>
                   {% if lot.autodelivery %}
                     <span class="px-2.5 py-0.5 rounded-lg bg-green-50 text-[10px] font-black text-green-600 uppercase border border-green-100 flex items-center gap-1">

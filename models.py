@@ -100,6 +100,7 @@ class Purchase(db.Model):
     seller_username = db.Column(db.String(100))
 
     seller_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    seller = db.relationship('User', foreign_keys=[seller_id])
     delivery_data = db.Column(db.Text, nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

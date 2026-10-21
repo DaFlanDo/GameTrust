@@ -52,14 +52,14 @@
   <!-- Действия -->
   <div class="flex gap-4 pt-4 border-t border-gray-700">
     <!-- Вкл/Выкл -->
-    <form method="post" action="{{ url_for('admin.toggle_lot', lot_id=lot.id) }}">
+    <form method="post" action="{{ url_for('admin.toggle_lot', lot_id=lot.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="px-4 py-2 rounded bg-yellow-600 hover:bg-yellow-700 text-white">
         {{ 'Отключить' if lot.is_active else 'Включить' }}
       </button>
     </form>
     <!-- Удаление -->
     <form method="post" action="{{ url_for('admin.delete_lot', lot_id=lot.id) }}"
-          onsubmit="return confirm('Удалить лот «{{ lot.title }}»?')">
+          onsubmit="return confirm('Удалить лот «{{ lot.title }}»?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white">
         Удалить
       </button>
@@ -122,7 +122,7 @@
         </div>
         <form method="post"
               action="{{ url_for('admin.delete_review', review_id=r.id) }}"
-              onsubmit="return confirm('Удалить отзыв?')">
+              onsubmit="return confirm('Удалить отзыв?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="text-red-400 hover:text-red-500 text-sm">Удалить</button>
         </form>
       </div>

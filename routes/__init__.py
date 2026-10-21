@@ -1,5 +1,3 @@
-from flask import Blueprint
-
 from routes.review import review_bp
 from .auth import auth_bp
 from .chat import chat_bp

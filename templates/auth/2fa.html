@@ -29,7 +29,7 @@
         </div>
         {% endif %}
 
-        <form method="POST" class="space-y-8 max-w-sm mx-auto">
+        <form method="POST" class="space-y-8 max-w-sm mx-auto"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="space-y-4">
             <label class="block text-xs font-black text-slate-400 uppercase tracking-widest">Код подтверждения</label>
             <div class="flex justify-between gap-2">
@@ -70,7 +70,7 @@
           <p class="text-slate-500 font-medium">Ваш аккаунт под надежной двухфакторной защитой.</p>
         </div>
 
-        <form method="POST" action="{{ url_for('security.disable_2fa') }}" class="space-y-8 max-w-sm mx-auto mt-12 pt-12 border-t border-slate-100">
+        <form method="POST" action="{{ url_for('security.disable_2fa') }}" class="space-y-8 max-w-sm mx-auto mt-12 pt-12 border-t border-slate-100"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="space-y-4">
             <label class="block text-xs font-black text-slate-400 uppercase tracking-widest">Текущий код</label>
             <div class="flex justify-between gap-2">
