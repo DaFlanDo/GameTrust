@@ -1,0 +1,2 @@
+# Jinja-шаблоны не считать в языке репозитория: основной код — Python
+templates/** linguist-detectable=false
