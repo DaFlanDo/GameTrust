@@ -37,6 +37,10 @@ class Config:
     RATELIMIT_ENABLED = _flag("RATELIMIT_ENABLED", "1")
     RATELIMIT_STORAGE_URI = os.getenv("RATELIMIT_STORAGE_URI", "memory://")
 
+    # За reverse proxy (Caddy/nginx): брать IP клиента и схему из X-Forwarded-*,
+    # иначе лимиты считаются по адресу прокси, а ссылки в письмах уходят с http://
+    TRUST_PROXY = _flag("TRUST_PROXY", "0")
+
     SESSION_COOKIE_SECURE = _flag("COOKIE_SECURE", "0")
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"

@@ -1,0 +1,20 @@
+# Продакшен за общим Caddy (см. репозиторий deploy):
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Порт наружу не публикуется: Caddy ходит в контейнер по сети web
+# и сам выдаёт HTTPS. Нужен Docker Compose 2.24+ (для !reset).
+name: gametrust
+
+services:
+  web:
+    ports: !reset []
+    environment:
+      COOKIE_SECURE: "1"
+      TRUST_PROXY: "1"
+    networks:
+      default:
+      web:
+        aliases: [gametrust-web]
+
+networks:
+  web:
+    external: true

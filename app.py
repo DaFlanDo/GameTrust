@@ -3,6 +3,7 @@ import os
 
 from flask import Flask, send_from_directory, render_template, url_for, redirect, request
 from flask_login import current_user, login_required
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from admin import admin_bp
 from config import Config
@@ -16,6 +17,8 @@ from seed import seed_command
 def create_app(config_object=Config):
     app = Flask(__name__)
     app.config.from_object(config_object)
+    if app.config['TRUST_PROXY']:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     logging.basicConfig(level=logging.INFO)
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
