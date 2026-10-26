@@ -2,6 +2,7 @@ import pyotp
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 
+from demo import is_demo_user
 from extensions import db
 from totp2fa import generate_qr_code, get_backup_codes, generate_backup_codes, verify_totp, generate_totp_secret, \
     decrypt_totp_secret, use_backup_code
@@ -12,6 +13,10 @@ security_bp = Blueprint('security', __name__)
 @security_bp.route('/2fa/setup', methods=['GET', 'POST'])
 @login_required
 def setup_2fa():
+    # Демо-аккаунт общий: с 2FA остальные посетители не смогли бы в него войти
+    if is_demo_user(current_user):
+        flash("В демо-режиме 2FA не включить: аккаунт общий для всех посетителей.", "warning")
+        return redirect(url_for('profile.user_profile', user_id=current_user.id))
     # Уже подключена — показываем только статус (без бэкап-кодов)
     if current_user.twofa_secret and current_user.is_2fa_enabled:
         return render_template('auth/2fa.html', setup_complete=True)

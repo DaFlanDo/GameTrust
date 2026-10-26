@@ -41,6 +41,9 @@ class Config:
     # иначе лимиты считаются по адресу прокси, а ссылки в письмах уходят с http://
     TRUST_PROXY = _flag("TRUST_PROXY", "0")
 
+    # Публичный демо-стенд: вход одной кнопкой под сид-аккаунтами (см. demo.py)
+    DEMO_MODE = _flag("DEMO_MODE", "0")
+
     SESSION_COOKIE_SECURE = _flag("COOKIE_SECURE", "0")
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"

@@ -15,7 +15,7 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt -r requirements-dev.txt pyflakes
-      - run: python -m pyflakes app.py config.py escrow.py extensions.py media.py models.py seed.py totp2fa.py forms.py routes tests
+      - run: python -m pyflakes app.py config.py demo.py escrow.py extensions.py media.py models.py seed.py totp2fa.py forms.py routes tests
       - run: python -m pytest -q tests
 
   postgres:
@@ -47,6 +47,10 @@ jobs:
       - run: flask seed
       - name: Схема в базе совпадает с моделями
         run: flask db check
+      - name: Ночной сброс демо-стенда на настоящей базе
+        run: flask reset-demo && flask db check
+        env:
+          DEMO_MODE: "1"
 
   docker:
     runs-on: ubuntu-latest

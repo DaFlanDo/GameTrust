@@ -31,6 +31,8 @@
         {% endif %}
       {% endwith %}
 
+      {% include 'demo/login_cards.html' %}
+
       <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-6">
         {{ form.hidden_tag() }}
         <input type="hidden" name="totp_code" id="totp-code-hidden">

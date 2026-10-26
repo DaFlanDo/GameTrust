@@ -4,6 +4,7 @@ from functools import wraps
 from flask import render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 
+from demo import is_demo_user
 from . import admin_bp
 
 
@@ -90,6 +91,9 @@ def edit_user(user_id):
     user = User.query.get_or_404(user_id)
 
     action = request.args.get('action')
+    if action in ('toggle_block', 'delete') and is_demo_user(user):
+        flash('В демо-режиме нельзя заблокировать или удалить демо-аккаунт', 'warning')
+        return redirect(url_for('admin.edit_user', user_id=user.id))
 
     # 💡 ВАЖНО: если есть action — обработать и выйти
     if action == 'toggle_block':

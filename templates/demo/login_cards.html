@@ -1,0 +1,29 @@
+{# Вход под ролью на странице входа — только на демо-стенде #}
+{% if demo_roles %}
+<div class="mb-10">
+  <p class="text-xs font-black text-slate-400 uppercase tracking-widest pl-2 mb-1">Демо без регистрации</p>
+  <p class="text-sm text-slate-500 font-medium pl-2 mb-4">Выберите роль — войдёте сразу, лоты, сделки и переписка уже есть.</p>
+  <div class="space-y-3">
+    {% set texts = {
+      'buyer': 'Баланс на счёте, покупки с автовыдачей ключей, заказ в ожидании и чат с продавцом',
+      'seller': 'Свои лоты, продажи, деньги на удержании до подтверждения покупателем',
+      'admin': 'Графики сделок, пользователи, модерация лотов, арбитраж заказов',
+    } %}
+    {% for role, title in demo_roles %}
+      <a href="{{ url_for('demo.enter', role=role) }}"
+         class="group flex items-center gap-4 px-6 py-4 rounded-[1.5rem] bg-white/60 border border-blue-50 hover:bg-white hover:border-blue-300 hover:shadow-lg hover:shadow-blue-600/10 transition-all">
+        <div class="flex-1 min-w-0">
+          <div class="font-black text-blue-900">{{ title }}</div>
+          <div class="text-xs text-slate-500 font-medium leading-snug">{{ texts[role] }}</div>
+        </div>
+        <span class="text-blue-300 group-hover:text-blue-600 text-xl transition-colors">→</span>
+      </a>
+    {% endfor %}
+  </div>
+  <div class="flex items-center gap-3 mt-8">
+    <div class="h-px flex-1 bg-blue-100"></div>
+    <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">или по паролю</span>
+    <div class="h-px flex-1 bg-blue-100"></div>
+  </div>
+</div>
+{% endif %}

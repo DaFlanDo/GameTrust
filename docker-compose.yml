@@ -10,6 +10,8 @@ services:
       REDIS_URL: redis://redis:6379/0
       RATELIMIT_STORAGE_URI: redis://redis:6379/1
       SEED_DEMO: ${SEED_DEMO:-1}
+      # Кнопки «Войти как …» без пароля и защита общих демо-аккаунтов
+      DEMO_MODE: ${DEMO_MODE:-1}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
     volumes:

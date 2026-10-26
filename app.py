@@ -12,6 +12,7 @@ from media import avatar_url, game_image_url, category_label, plural
 from models import User
 from routes import register_blueprints
 from seed import seed_command
+from demo import demo_bp, demo_context, reset_demo_command
 
 
 def create_app(config_object=Config):
@@ -36,7 +37,10 @@ def create_app(config_object=Config):
 
     app.register_blueprint(admin_bp)
     register_blueprints(app)
+    app.register_blueprint(demo_bp)
+    app.context_processor(demo_context)
     app.cli.add_command(seed_command)
+    app.cli.add_command(reset_demo_command)
 
     @login_manager.user_loader
     def load_user(user_id):

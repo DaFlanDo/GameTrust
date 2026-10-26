@@ -1,0 +1,17 @@
+{# Плашка демо-стенда: гостю — вход под ролью, демо-аккаунту — смена роли #}
+{% if demo_roles and (not current_user.is_authenticated or demo_current_role) %}
+<div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-[120]">
+  <div class="flex items-center gap-1 p-1 pl-4 rounded-full bg-slate-900/90 backdrop-blur text-white shadow-2xl whitespace-nowrap">
+    <span class="hidden sm:inline text-xs font-bold text-white/60 mr-2">
+      {% if demo_current_role %}Демо · роль{% else %}Демо · войти как{% endif %}
+    </span>
+    {% for role, title in demo_roles %}
+      <a href="{{ url_for('demo.enter', role=role) }}"
+         class="px-3 py-1.5 rounded-full text-xs font-bold transition-colors
+                {% if role == demo_current_role %}bg-white text-slate-900{% else %}text-white/80 hover:bg-white/15{% endif %}">
+        {{ title }}
+      </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
