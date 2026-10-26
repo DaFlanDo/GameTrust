@@ -17,7 +17,9 @@
           <div>
             <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Всего выручено</div>
             <div class="text-2xl font-black text-blue-600 tracking-tighter">
-               {% set total = 0 %}{% for p in purchases %}{% set total = total + p.lot_price %}{% endfor %}{{ total }} ₽
+               {# set внутри for в Jinja не меняет внешнюю переменную — считаем фильтром.
+                  Выручка — только завершённые сделки: остальное ещё на удержании #}
+               {{ purchases | selectattr('status', 'equalto', 'completed') | sum(attribute='lot_price') }} ₽
             </div>
           </div>
        </div>
