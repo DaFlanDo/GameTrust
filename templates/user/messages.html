@@ -38,17 +38,23 @@
               <h3 class="text-lg font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors">
                 {{ dialog.user.username }}
               </h3>
-              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-tighter">
+              <span class="shrink-0 ml-3 text-[11px] font-bold text-slate-400 uppercase tracking-tighter">
                 {{ dialog.last_message.created_at.strftime('%d.%m %H:%M') }}
               </span>
             </div>
             
-            <div class="flex items-center gap-2">
+            {# min-w-0: без него длинное превью распирает flex и карточка уезжает за экран #}
+            <div class="flex items-center gap-2 min-w-0">
               {% if dialog.last_message.sender_id == current_user.id %}
-                <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest bg-blue-50 px-2 py-0.5 rounded-md">Вы:</span>
+                <span class="shrink-0 text-[10px] font-black text-blue-500 uppercase tracking-widest bg-blue-50 px-2 py-0.5 rounded-md">Вы:</span>
               {% endif %}
-              <p class="text-slate-500 text-sm truncate leading-relaxed">
-                {{ dialog.last_message.content }}
+              <p class="min-w-0 text-slate-500 text-sm truncate leading-relaxed">
+                {% if dialog.last_message.is_system %}
+                  {# Системное сообщение хранится с HTML-разметкой — в превью только текст #}
+                  {{ dialog.last_message.content|replace('<br>', ' · ')|striptags }}
+                {% else %}
+                  {{ dialog.last_message.content }}
+                {% endif %}
               </p>
             </div>
           </div>

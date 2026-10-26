@@ -140,3 +140,14 @@ def test_admin_dashboard_charts(client, make_user, make_lot):
     assert "[0, 0, 0, 0, 0, 0, 300]" in page  # доход за сегодня
     login(client, buyer)
     assert "Панель администратора" not in client.get("/admin", follow_redirects=True).get_data(as_text=True)
+
+
+def test_dialog_preview_shows_system_message_as_text(client, make_user, make_lot):
+    seller, buyer = make_user(), make_user(balance=100)
+    escrow.buy_lot(buyer, make_lot(seller, price=100, title="Ключ & бонус").public_id)
+    login(client, buyer)
+    page = client.get("/messages").get_data(as_text=True)
+    assert "Покупка оформлена!" in page
+    # Ни тегов, ни двойного экранирования в превью
+    assert "&lt;b&gt;" not in page and "&amp;amp;" not in page
+    assert "Ключ &amp; бонус" in page
